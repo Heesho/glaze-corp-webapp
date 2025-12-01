@@ -22,7 +22,7 @@ export const TV: React.FC<TVProps> = ({ uri, glazing, overrideAvatar }) => {
   const [isStatic, setIsStatic] = useState(false);
   const [timestamp, setTimestamp] = useState(new Date().toLocaleTimeString());
   const [showOverrideScreen, setShowOverrideScreen] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
 
   // Clock Effect
   useEffect(() => {
