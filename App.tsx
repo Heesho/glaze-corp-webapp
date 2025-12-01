@@ -251,7 +251,14 @@ const App: React.FC = () => {
   const pnlEthStr = `${pnlSign}Ξ${pnlEthNum.toFixed(5)}`;
 
   const pnlUsdNum = pnlEthNum * ethPrice;
+  const pnlUsdSigned = pnlIsPositive ? pnlUsdNum : -pnlUsdNum;
   const pnlUsdStr = `${pnlSign}$${pnlUsdNum.toFixed(2)}`;
+
+  // Total = Glazed USD value + PNL USD (signed)
+  const accruedUsdNum = parseFloat(accruedValueUsdStr);
+  const totalUsdNum = accruedUsdNum + pnlUsdSigned;
+  const totalIsPositive = totalUsdNum >= 0;
+  const totalUsdStr = `${totalIsPositive ? '+' : '-'}$${Math.abs(totalUsdNum).toFixed(2)}`;
 
   const dpsEthWei = (safeDps * safeDonutPrice) / 1000000000000000000n;
   const dpsUsd = parseFloat(ethers.formatEther(dpsEthWei)) * ethPrice;
@@ -362,23 +369,26 @@ const App: React.FC = () => {
                        <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Time</span>
                        <div className="text-sm font-bold text-white font-mono">{glazeTimeStr}</div>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-black/20 rounded border border-white/5 hover:border-white/10 transition-colors">
-                       <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Glazed</span>
-                       <div className="text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                             <DonutLogo className="w-3 h-3" />
-                             <div className="text-sm font-bold text-white font-mono">{accruedDonutsStr}</div>
+                    <div className="p-3 bg-black/20 rounded border border-white/5 hover:border-white/10 transition-colors space-y-1">
+                       <div className="flex justify-between items-center">
+                          <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Glazed</span>
+                          <div className="flex items-center gap-2">
+                             <span className="text-sm font-bold text-white font-mono flex items-center gap-0.5">+<DonutLogo className="w-3 h-3" />{accruedDonutsStr}</span>
+                             <span className="text-[10px] text-zinc-600 font-mono">+${accruedValueUsdStr}</span>
                           </div>
-                          <div className="text-[10px] text-zinc-600 font-mono">${accruedValueUsdStr}</div>
                        </div>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-black/20 rounded border border-white/5 hover:border-white/10 transition-colors">
-                       <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Current PNL</span>
-                       <div className="text-right">
-                          <div className={`text-sm font-bold font-mono ${pnlIsPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {pnlEthStr}
+                       <div className="flex justify-between items-center">
+                          <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">PNL</span>
+                          <div className="flex items-center gap-2">
+                             <span className="text-sm font-bold font-mono text-white">{pnlEthStr}</span>
+                             <span className="text-[10px] text-zinc-600 font-mono">{pnlUsdStr}</span>
                           </div>
-                          <div className="text-[10px] text-zinc-600 font-mono">{pnlUsdStr}</div>
+                       </div>
+                       <div className="border-t border-white/10 pt-1 flex justify-between items-center">
+                          <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Total</span>
+                          <div className={`text-sm font-bold font-mono ${totalIsPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {totalUsdStr}
+                          </div>
                        </div>
                     </div>
                   </div>
