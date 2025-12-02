@@ -191,14 +191,14 @@ const App: React.FC = () => {
       const deadline = Math.floor(Date.now()/1000) + 300;
       const priceVal = BigInt(currentPrice);
       const valueToSend = priceVal + (priceVal / 10n);
-      const shopAddress = "0x0000000000000000000000000000000000000000";
+      const shopAddress = "0xba366c82815983ff130c23ced78bd95e1f2c18ea";
 
       const tx = await contract.mine(
         shopAddress,
         epochId,
         deadline,
         valueToSend,
-        message.trim() || "We Glaze The World",
+        message.trim() || "We Glaze The World - GlazeCorp.io",
         { value: valueToSend }
       );
 
