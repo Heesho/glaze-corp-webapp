@@ -1,0 +1,255 @@
+"use client";
+
+import React, { useState, useMemo, useCallback } from "react";
+import { formatUnits, formatEther, type Address } from "viem";
+import { Lock, Unlock, RotateCcw, Clock } from "lucide-react";
+
+import { Card, Button, DonutLogo } from "@/components/ui";
+import { DONUT_DECIMALS } from "@/config/constants";
+import { useStaking } from "../hooks/useStaking";
+import { formatTimeUntilNextEpoch, canVoteThisEpoch, type VoterData } from "../hooks/useGovernData";
+
+interface StakePanelProps {
+  userAddress?: Address;
+  voterData: VoterData | null;
+  donutAllowance?: bigint;
+  hasActiveVotes: boolean;
+  canUnstake: boolean;
+  onSuccess: () => void;
+}
+
+const formatTokenAmount = (value: bigint, decimals: number, maxFractionDigits = 2) => {
+  if (value === 0n) return "0";
+  const asNumber = Number(formatUnits(value, decimals));
+  if (!Number.isFinite(asNumber)) return formatUnits(value, decimals);
+  return asNumber.toLocaleString(undefined, { maximumFractionDigits: maxFractionDigits });
+};
+
+export function StakePanel({
+  userAddress,
+  voterData,
+  donutAllowance,
+  hasActiveVotes,
+  canUnstake,
+  onSuccess,
+}: StakePanelProps) {
+  const [mode, setMode] = useState<"stake" | "unstake">("stake");
+  const [amount, setAmount] = useState("");
+
+  const {
+    txStep,
+    txResult,
+    isBusy,
+    needsApproval,
+    handleApprove,
+    handleStake,
+    handleUnstake,
+    handleResetVotes,
+  } = useStaking(userAddress, donutAllowance, onSuccess);
+
+  const parsedAmount = useMemo(() => {
+    try {
+      if (!amount || amount === "") return 0n;
+      const [whole, fraction = ""] = amount.split(".");
+      const paddedFraction = fraction.padEnd(DONUT_DECIMALS, "0").slice(0, DONUT_DECIMALS);
+      return BigInt(whole || "0") * 10n ** BigInt(DONUT_DECIMALS) + BigInt(paddedFraction);
+    } catch {
+      return 0n;
+    }
+  }, [amount]);
+
+  const maxBalance =
+    mode === "stake"
+      ? voterData?.accountUnderlyingTokenBalance ?? 0n
+      : voterData?.accountGovernanceTokenBalance ?? 0n;
+
+  const insufficientBalance = parsedAmount > maxBalance;
+
+  const setMaxAmount = useCallback(() => {
+    if (!voterData) return;
+    const balance =
+      mode === "stake"
+        ? voterData.accountUnderlyingTokenBalance
+        : voterData.accountGovernanceTokenBalance;
+    setAmount(formatEther(balance));
+  }, [mode, voterData]);
+
+  const canReset = voterData && canVoteThisEpoch(voterData.accountLastVoted);
+
+  const handleAction = () => {
+    if (mode === "stake") {
+      if (needsApproval(amount)) {
+        handleApprove(amount);
+      } else {
+        handleStake(amount);
+      }
+    } else {
+      handleUnstake(amount);
+    }
+  };
+
+  const getButtonText = () => {
+    if (txResult === "success") return "SUCCESS!";
+    if (txResult === "failure") return "FAILED";
+    if (txStep === "approving") return "APPROVING...";
+    if (txStep === "staking") return "STAKING...";
+    if (txStep === "unstaking") return "UNSTAKING...";
+    if (mode === "stake" && needsApproval(amount)) return "APPROVE DONUT";
+    if (mode === "stake") return "STAKE DONUT";
+    return "UNSTAKE gDONUT";
+  };
+
+  return (
+    <div className="flex flex-col h-full gap-3 overflow-hidden">
+      {/* Balance Cards */}
+      <div className="grid grid-cols-2 gap-2 shrink-0">
+        <Card variant="cyber" noPadding>
+          <div className="p-3">
+            <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
+              DONUT Balance
+            </div>
+            <div className="flex items-center gap-2">
+              <DonutLogo className="w-5 h-5" />
+              <span className="text-lg font-bold font-mono text-white">
+                {voterData ? formatTokenAmount(voterData.accountUnderlyingTokenBalance, DONUT_DECIMALS) : "-"}
+              </span>
+            </div>
+            <div className="text-[9px] font-mono text-zinc-600">Available to stake</div>
+          </div>
+        </Card>
+        <Card variant="cyber" noPadding>
+          <div className="p-3">
+            <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
+              gDONUT Balance
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-brand-pink/20 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-brand-pink">g</span>
+              </div>
+              <span className="text-lg font-bold font-mono text-white">
+                {voterData ? formatTokenAmount(voterData.accountGovernanceTokenBalance, DONUT_DECIMALS) : "-"}
+              </span>
+            </div>
+            <div className="text-[9px] font-mono text-zinc-600">Voting power</div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Stake/Unstake Toggle */}
+      <div className="flex gap-2 shrink-0">
+        <button
+          onClick={() => {
+            setMode("stake");
+            setAmount("");
+          }}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold font-mono rounded transition-all ${
+            mode === "stake"
+              ? "bg-brand-pink text-white"
+              : "bg-zinc-800 text-zinc-400 hover:text-white"
+          }`}
+        >
+          <Lock size={14} />
+          STAKE
+        </button>
+        <button
+          onClick={() => {
+            setMode("unstake");
+            setAmount("");
+          }}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold font-mono rounded transition-all ${
+            mode === "unstake"
+              ? "bg-brand-pink text-white"
+              : "bg-zinc-800 text-zinc-400 hover:text-white"
+          }`}
+        >
+          <Unlock size={14} />
+          UNSTAKE
+        </button>
+      </div>
+
+      {/* Amount Input */}
+      <Card variant="cyber" noPadding className="shrink-0">
+        <div className="p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+              {mode === "stake" ? "Amount to stake" : "Amount to unstake"}
+            </span>
+            <button
+              onClick={setMaxAmount}
+              className="text-[10px] font-mono text-brand-pink hover:text-brand-pinkHover"
+            >
+              MAX
+            </button>
+          </div>
+          <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded px-3 py-2">
+            <DonutLogo className="w-6 h-6 shrink-0" />
+            <input
+              type="text"
+              value={amount}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (/^\d*\.?\d*$/.test(val)) setAmount(val);
+              }}
+              placeholder="0.00"
+              className="flex-1 bg-transparent text-xl font-bold font-mono text-white placeholder:text-zinc-700 focus:outline-none"
+            />
+          </div>
+          <div className="text-[9px] font-mono text-zinc-600 mt-1">1:1 exchange rate</div>
+        </div>
+      </Card>
+
+      {/* Active Votes Warning */}
+      {mode === "unstake" && hasActiveVotes && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded p-3 shrink-0">
+          <div className="text-[10px] text-red-400 text-center mb-2 font-mono">
+            Reset votes before unstaking
+          </div>
+          {canReset ? (
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={handleResetVotes}
+              disabled={isBusy}
+              className="!py-2 !text-xs"
+            >
+              <RotateCcw size={12} className="mr-2" />
+              {txStep === "resetting" ? "RESETTING..." : "RESET VOTES"}
+            </Button>
+          ) : (
+            <div className="flex items-center justify-center gap-2 text-yellow-400">
+              <Clock size={12} />
+              <span className="text-[10px] font-mono">
+                {voterData ? formatTimeUntilNextEpoch(voterData.accountLastVoted) : "-"}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {insufficientBalance && parsedAmount > 0n && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded p-2 text-center shrink-0">
+          <div className="text-[10px] text-red-400 font-mono">
+            Insufficient {mode === "stake" ? "DONUT" : "gDONUT"} balance
+          </div>
+        </div>
+      )}
+
+      {/* Action Button */}
+      <Button
+        variant="primary"
+        fullWidth
+        onClick={handleAction}
+        disabled={isBusy || parsedAmount === 0n || insufficientBalance || (mode === "unstake" && !canUnstake)}
+        className={`shrink-0 !py-3 ${
+          txResult === "success"
+            ? "!bg-emerald-500"
+            : txResult === "failure"
+            ? "!bg-red-500"
+            : ""
+        }`}
+      >
+        {getButtonText()}
+      </Button>
+    </div>
+  );
+}

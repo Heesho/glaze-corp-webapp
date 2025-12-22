@@ -1,15 +1,9 @@
-declare global {
-  interface Window {
-    ethereum: any;
-  }
-}
-
 export interface Slot0 {
   locked: boolean;
   epochId: number;
   initPrice: bigint;
   startTime: number;
-  dps: bigint; // Donuts per second in wei
+  dps: bigint;
   miner: string;
   uri: string;
 }
@@ -22,7 +16,7 @@ export interface MinerState {
   price: bigint;
   dps: bigint;
   nextDps: bigint;
-  donutPrice: bigint; // Added back to match ABI
+  donutPrice: bigint;
   miner: string;
   uri: string;
   ethBalance: bigint;
