@@ -12,26 +12,17 @@ export function DonutLogo({ className = "w-8 h-8" }: DonutLogoProps) {
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
     >
-      {/* Dough (Bottom/Base Layer) */}
-      <circle cx="256" cy="256" r="256" fill="#e4e4e7" />
-
-      {/* Icing (Pink Layer) with wavy drip effect */}
-      <path
-        d="M256 0C114.6 0 0 114.6 0 256c0 14.8 1.3 29.3 3.6 43.4
-           C25 310 50 340 85 320
-           c35-20 50-10 70 15
-           s45 20 70-15
-           c25-35 55-25 80 0
-           s50 20 75-10
-           c25-30 55-20 80 10
-           c15 18 30 15 48.4-3.4
-           C510.7 285.3 512 270.8 512 256
-           C512 114.6 397.4 0 256 0z"
-        fill="#ec4899"
-      />
-
-      {/* Hole (Black Center) */}
-      <circle cx="256" cy="256" r="90" fill="black" />
+      <defs>
+        <linearGradient id="donutGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#f472b6" />
+          <stop offset="50%" stopColor="#ec4899" />
+          <stop offset="100%" stopColor="#db2777" />
+        </linearGradient>
+      </defs>
+      {/* Outer ring with gradient */}
+      <circle cx="256" cy="256" r="256" fill="url(#donutGradient)" />
+      {/* Hole - matches dark background */}
+      <circle cx="256" cy="256" r="90" fill="#0a0a0a" />
     </svg>
   );
 }

@@ -8,23 +8,14 @@ export const TOKEN_ADDRESSES = {
   weth: "0x4200000000000000000000000000000000000006",
   usdc: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
   donutEthLp: "0xD1DbB2E56533C55C3A637D13C53aeEf65c5D5703",
-  gDonut: "0xFbE43EF88274fC7C5136298157272510bB634D47",
+  gDonut: "0x2e5BaC759449b9673Ce2e2e7C87cFce8D8A0b2c3", // GovernanceToken
 } as const;
 
 // LSG (Liquid Signal Governance) Contract Addresses
 export const LSG_ADDRESSES = {
-  dao: "0x69399790f5ef59d5074b7137C5De795837396444",
-  governanceToken: "0xFbE43EF88274fC7C5136298157272510bB634D47",
-  voter: "0xfeA7231547bd2ccB1Db85069EFA14DE87927a3b2",
-  revenueRouter: "0xc3B0C178204fdDDFcfEbf150a02DDd4949dEe141",
-  lsgMulticall: "0x8fB5378DdA99F0E7395F483045db6D2C32456a08",
-  // Strategies
-  strategy0: "0xFA995AD01489BD8CBDeeF7DCcB5f6Da7E7Feb297",
-  bribe0: "0xCeb774dCa56964547b98C88C39a5189d1f449cD0",
-  strategy1: "0x361266B1aacCa78C6ea5DF92313c39186A0fC7f6",
-  bribe1: "0x39634926f255abB4cC6d2E5fa00c6a1e3a454313",
-  strategy2: "0x40Ac6578904D68726CEFAe1b9876421B76247E09",
-  bribe2: "0xc7aD1976F705309dE2773693b4b67536D951E1Ce",
+  governanceToken: "0x2e5BaC759449b9673Ce2e2e7C87cFce8D8A0b2c3",
+  voter: "0x1fAfC7Ec84ee588F1836833a4217b8a3e6632522",
+  lsgMulticall: "0x1a90e9A7f0ED2C0CB054F470e8F9c06a935B9789",
 } as const;
 
 // Payment token symbols for display
@@ -178,6 +169,32 @@ export const LSG_MULTICALL_ABI = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "strategy", type: "address" }],
+    name: "distribute",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "distributeAll",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "strategy", type: "address" },
+      { name: "epochId", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "maxPaymentAmount", type: "uint256" },
+    ],
+    name: "distributeAndBuy",
+    outputs: [{ name: "paymentAmount", type: "uint256" }],
+    stateMutability: "nonpayable",
     type: "function",
   },
 ] as const;

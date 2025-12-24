@@ -1,8 +1,6 @@
 import { ethers } from 'ethers';
 
-const SUBGRAPH_ID = "8LAXZsz9xTzGMH2HB1F78AkoXD9yvxm2epLGr48wDhrK";
-const GRAPH_API_KEY = process.env.NEXT_PUBLIC_GRAPH_API_KEY;
-const GRAPH_URL = `https://gateway.thegraph.com/api/${GRAPH_API_KEY}/subgraphs/id/${SUBGRAPH_ID}`;
+const GRAPH_URL = "https://api.goldsky.com/api/public/project_cmgscxhw81j5601xmhgd42rej/subgraphs/donut-miner/1.0.0/gn";
 
 export interface GraphResponse {
   miners?: Array<{ revenue: string; minted: string }>;
@@ -10,6 +8,8 @@ export interface GraphResponse {
     id: string;
     uri: string;
     spent: string;
+    earned: string;
+    mined: string;
     startTime: string;
     account: { id: string };
   }>;
@@ -42,6 +42,8 @@ export async function fetchGraphData(
         id
         uri
         spent
+        earned
+        mined
         startTime
         account {
           id

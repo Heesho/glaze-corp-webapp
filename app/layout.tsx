@@ -38,16 +38,10 @@ export default function RootLayout({
           overflow-hidden
         `}
       >
-        {/* Background Grid Effect */}
-        <div className="fixed inset-0 bg-grid pointer-events-none z-0" />
-
         {/* Main App Container */}
         <Providers>
           {children}
         </Providers>
-
-        {/* CRT Scanlines Effect */}
-        <div className="scanlines" />
       </body>
     </html>
   );

@@ -44,4 +44,6 @@ export interface FeedItem {
   uri: string;
   timestamp: number;
   price: string;
+  earned: string;
+  mined: string;
 }

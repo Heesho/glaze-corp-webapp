@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { ethers } from "ethers";
 import {
-  Terminal,
+  Hammer,
   ShieldAlert,
   Zap,
   LayoutGrid,
@@ -15,12 +15,16 @@ import {
   Landmark,
   Store,
   ArrowLeftRight,
+  ArrowDown,
+  Gavel,
+  ChevronDown,
+  Settings,
 } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useWalletClient } from "wagmi";
 
 // UI Components
-import { Card, Button, DonutLogo } from "@/components/ui";
+import { Card, Button, DonutLogo, Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, SearchInput, Separator } from "@/components/ui";
 import { TV } from "@/features/tv";
 
 // Hooks
@@ -43,7 +47,7 @@ export default function App() {
   const { data: walletClient } = useWalletClient();
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<TabView>("TERMINAL");
+  const [activeTab, setActiveTab] = useState<TabView>("MINE");
 
   // Data hooks
   const {
@@ -131,88 +135,45 @@ export default function App() {
   const donutPriceUsd = parseFloat(ethers.formatEther(safeDonutPrice)) * ethPrice;
 
   return (
-    <div className="h-screen w-screen flex flex-col font-sans overflow-hidden">
+    <div className="h-screen w-screen flex flex-col font-sans overflow-hidden bg-[#131313]">
       {/* Header */}
-      <header className="h-14 shrink-0 border-b border-white/5 bg-black/60 backdrop-blur-md flex items-center justify-between px-6 z-50">
+      <header className="h-14 fixed top-0 left-0 right-0 bg-[#131313]/40 backdrop-blur-sm flex items-center justify-between px-6 z-50">
         <div className="flex items-center gap-10">
-          <div className="flex items-center gap-3">
-            <DonutLogo className="w-8 h-8 animate-spin-slow" />
-            <div>
-              <h1 className="font-bold text-xl tracking-tight text-white leading-none">
-                GLAZE<span className="text-brand-pink">CORP</span>
-              </h1>
-              <div className="text-[9px] font-mono text-zinc-500 tracking-[0.3em] uppercase">
-                Donut Miner Protocol
-              </div>
-            </div>
-          </div>
+          <span className="font-bold text-2xl text-white tracking-tight">
+            Glaze<span className="text-glaze-400">Corp</span>
+          </span>
 
-          <nav className="hidden md:flex items-center bg-white/5 rounded-lg p-1 border border-white/5">
-            <button
-              onClick={() => setActiveTab("TERMINAL")}
-              className={`px-4 py-1.5 text-xs font-bold font-mono rounded transition-all flex items-center gap-2 ${
-                activeTab === "TERMINAL"
-                  ? "bg-zinc-800 text-white shadow-sm ring-1 ring-white/10"
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <Terminal size={12} />
-              TERMINAL
-            </button>
-            <button
-              onClick={() => setActiveTab("SWAP")}
-              className={`px-4 py-1.5 text-xs font-bold font-mono rounded transition-all flex items-center gap-2 ${
-                activeTab === "SWAP"
-                  ? "bg-zinc-800 text-white shadow-sm ring-1 ring-white/10"
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <ArrowLeftRight size={12} />
-              SWAP
-            </button>
-            <button
-              onClick={() => setActiveTab("FRANCHISE")}
-              className={`px-4 py-1.5 text-xs font-bold font-mono rounded transition-all flex items-center gap-2 ${
-                activeTab === "FRANCHISE"
-                  ? "bg-zinc-800 text-white shadow-sm ring-1 ring-white/10"
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <Store size={12} />
-              FRANCHISE
-            </button>
-            <button
-              onClick={() => setActiveTab("GOVERN")}
-              className={`px-4 py-1.5 text-xs font-bold font-mono rounded transition-all flex items-center gap-2 ${
-                activeTab === "GOVERN"
-                  ? "bg-zinc-800 text-white shadow-sm ring-1 ring-white/10"
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <Landmark size={12} />
-              GOVERN
-            </button>
-            <button
-              onClick={() => setActiveTab("AUCTIONS")}
-              className={`px-4 py-1.5 text-xs font-bold font-mono rounded transition-all flex items-center gap-2 ${
-                activeTab === "AUCTIONS"
-                  ? "bg-zinc-800 text-white shadow-sm ring-1 ring-white/10"
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <LayoutGrid size={12} />
-              AUCTIONS
-            </button>
+          <nav className="hidden md:flex items-center gap-1">
+            {[
+              { id: "MINE" as TabView, icon: Hammer, label: "Mine" },
+              { id: "SWAP" as TabView, icon: ArrowLeftRight, label: "Swap" },
+              { id: "GOVERN" as TabView, icon: Landmark, label: "Govern" },
+              { id: "FRANCHISE" as TabView, icon: Store, label: "Franchise" },
+              { id: "AUCTIONS" as TabView, icon: Gavel, label: "Auction" },
+            ].map(({ id, icon: Icon, label }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${
+                  activeTab === id
+                    ? "bg-glaze-500 text-white shadow-lg shadow-glaze-500/20"
+                    : "text-corp-400 hover:text-corp-100 hover:bg-corp-800"
+                }`}
+              >
+                <Icon size={14} />
+                {label}
+              </button>
+            ))}
           </nav>
         </div>
 
         <div className="flex items-center gap-6">
-          <div className="hidden lg:flex items-center gap-4 text-zinc-500">
+          <div className="hidden lg:flex items-center gap-3 text-corp-500">
             <a
               href={EXTERNAL_LINKS.dune}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-brand-pink transition-colors"
+              className="p-2 rounded-lg hover:bg-corp-800 hover:text-glaze-400 transition-all"
             >
               <BarChart3 size={18} />
             </a>
@@ -220,7 +181,7 @@ export default function App() {
               href={EXTERNAL_LINKS.farcaster}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-brand-pink transition-colors"
+              className="p-2 rounded-lg hover:bg-corp-800 hover:text-glaze-400 transition-all"
             >
               <Users size={18} />
             </a>
@@ -230,7 +191,7 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 p-3 lg:p-4 overflow-hidden relative z-10">
+      <main className="flex-1 px-3 lg:px-4 overflow-y-auto relative z-10 pb-20 md:pb-3">
         {activeTab === "SWAP" ? (
           <SwapDashboard userAddress={userAddress} />
         ) : activeTab === "GOVERN" ? (
@@ -240,60 +201,95 @@ export default function App() {
           />
         ) : activeTab === "FRANCHISE" ? (
           <FranchiseDashboard userAddress={userAddress} />
-        ) : activeTab === "TERMINAL" ? (
-          <div className="grid grid-cols-12 gap-4 lg:gap-6 h-full overflow-hidden">
-            {/* Column 1: Intel */}
-            <div className="col-span-12 lg:col-span-3 flex flex-col gap-4 h-full max-h-full overflow-hidden">
-              <CurrentOperatorCard
-                kingProfile={kingProfile}
-                minerState={minerState}
-                glazeTimeStr={glazeTimeStr}
-                accruedDonutsStr={accruedDonutsStr}
-                accruedValueUsdStr={accruedValueUsdStr}
-                pnlEthStr={pnlEthStr}
-                pnlUsdStr={pnlUsdStr}
-                totalUsdStr={totalUsdStr}
-                totalIsPositive={totalIsPositive}
-              />
+        ) : activeTab === "MINE" ? (
+          <div className="pt-16">
+            <div className="max-w-7xl mx-auto">
+              {/* Two Column Layout */}
+              <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                {/* Left Sidebar */}
+                <div className="lg:w-72 shrink-0 flex flex-col gap-5 order-2 lg:order-1">
+                  <CurrentOperatorCard
+                    kingProfile={kingProfile}
+                    minerState={minerState}
+                    glazeTimeStr={glazeTimeStr}
+                    accruedDonutsStr={accruedDonutsStr}
+                    accruedValueUsdStr={accruedValueUsdStr}
+                    pnlEthStr={pnlEthStr}
+                    pnlUsdStr={pnlUsdStr}
+                    totalUsdStr={totalUsdStr}
+                    totalIsPositive={totalIsPositive}
+                  />
 
-              <SurveillanceLog feed={feed} feedProfiles={feedProfiles} />
-            </div>
+                  <Separator />
 
-            {/* Column 2: Main Viewport */}
-            <div className="col-span-12 lg:col-span-6 flex flex-col gap-3 h-full max-h-full overflow-hidden">
-              <TVFrame
-                minerState={minerState}
-                isGlazing={isGlazing}
-                kingProfile={kingProfile}
-              />
+                  <GlobalMetricsCard
+                    stats={stats}
+                    donutPriceUsd={donutPriceUsd}
+                    halvingDisplay={halvingDisplay}
+                  />
 
-              <GlazeControls
-                safeDps={safeDps}
-                dpsUsd={dpsUsd}
-                rebatePriceEth={rebatePriceEth}
-                currentPriceEth={currentPriceEth}
-                rebatePriceUsd={rebatePriceUsd}
-                message={message}
-                setMessage={setMessage}
-                handleGlaze={handleGlaze}
-                isGlazing={isGlazing}
-                isConnected={isConnected}
-                connectionError={connectionError}
-              />
-            </div>
+                  <Separator />
 
-            {/* Column 3: Stats */}
-            <div className="col-span-12 lg:col-span-3 flex flex-col gap-4 h-full max-h-full overflow-hidden">
-              <GlobalMetricsCard
-                stats={stats}
-                donutPriceUsd={donutPriceUsd}
-                halvingDisplay={halvingDisplay}
-              />
+                  <UserStatsCard
+                    minerState={minerState}
+                    userGraphStats={userGraphStats}
+                    ethPrice={ethPrice}
+                    donutPriceUsd={donutPriceUsd}
+                  />
+                </div>
 
-              <UserMetricsCard
-                minerState={minerState}
-                userGraphStats={userGraphStats}
-              />
+                {/* Main Content */}
+                <div className="flex-1 flex flex-col gap-4 order-1 lg:order-2 min-w-0">
+                  {/* Video */}
+                  <TVFrame
+                    minerState={minerState}
+                    isGlazing={isGlazing}
+                    kingProfile={kingProfile}
+                  />
+
+                  {/* Message Input */}
+                  <input
+                    type="text"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Enter a message to glaze..."
+                    className="w-full bg-corp-900 border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-corp-100 placeholder:text-corp-500 focus:outline-none focus:border-white/10 transition-colors"
+                    maxLength={200}
+                    spellCheck={false}
+                  />
+
+                  {/* Stats + Glaze Button */}
+                  <div className="flex items-stretch gap-4">
+                    <div className="flex items-center gap-8">
+                      <div>
+                        <div className="text-[11px] uppercase tracking-wider text-corp-500 mb-0.5">Rate</div>
+                        <div className="text-lg text-corp-50 font-semibold flex items-center gap-1.5">
+                          <DonutLogo className="w-4 h-4" />
+                          <span>{formatDonut(safeDps)}/s</span>
+                        </div>
+                        <div className="text-xs text-corp-500">${dpsUsd.toFixed(4)}/s</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] uppercase tracking-wider text-corp-500 mb-0.5">Price</div>
+                        <div className="text-lg text-glaze-400 font-semibold tabular-nums">Ξ{rebatePriceEth.toFixed(5)}</div>
+                        <div className="text-xs text-corp-500">${rebatePriceUsd.toFixed(2)}</div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="primary"
+                      onClick={handleGlaze}
+                      disabled={isGlazing || !isConnected}
+                      className="flex-1 !py-2.5 !text-sm !rounded-xl !font-semibold"
+                    >
+                      {isGlazing ? "..." : "Glaze"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Activity - Full Width */}
+              <Separator className="mt-4 mb-4" />
+              <SurveillanceLog feed={feed} feedProfiles={feedProfiles} accruedDonutsStr={accruedDonutsStr} currentPriceEth={currentPriceEth} />
             </div>
           </div>
         ) : (
@@ -301,21 +297,30 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="h-8 shrink-0 border-t border-white/5 bg-zinc-900/80 flex items-center justify-between px-6">
-        <div className="flex items-center gap-2 text-xs font-mono text-zinc-500">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-zinc-800 rounded border border-zinc-700">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="text-zinc-400">Online</span>
-          </div>
-        </div>
-        <nav className="flex items-center gap-6 text-xs font-mono text-zinc-500">
-          <a href="#" className="hover:text-white transition-colors">Docs</a>
-          <a href="#" className="hover:text-white transition-colors">Support</a>
-          <a href="#" className="hover:text-white transition-colors">Terms</a>
-          <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-        </nav>
-      </footer>
+      {/* Mobile Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#131313] flex items-center justify-around px-2 z-50">
+        {[
+          { id: "MINE" as TabView, icon: Hammer, label: "Mine" },
+          { id: "SWAP" as TabView, icon: ArrowLeftRight, label: "Swap" },
+          { id: "GOVERN" as TabView, icon: Landmark, label: "Govern" },
+          { id: "FRANCHISE" as TabView, icon: Store, label: "Franchise" },
+          { id: "AUCTIONS" as TabView, icon: Gavel, label: "Auction" },
+        ].map(({ id, icon: Icon, label }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all ${
+              activeTab === id
+                ? "text-glaze-400"
+                : "text-corp-500"
+            }`}
+          >
+            <Icon size={18} />
+            <span className="text-[10px] font-medium">{label}</span>
+          </button>
+        ))}
+      </nav>
+
     </div>
   );
 }
@@ -334,148 +339,186 @@ function CurrentOperatorCard({
   totalIsPositive,
 }: any) {
   return (
-    <Card variant="cyber" title="CURRENT_OPERATOR" icon={<ShieldAlert size={14} />} className="shrink-0">
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center gap-4">
-          <div className="shrink-0 relative">
-            {kingProfile?.pfp ? (
-              <img
-                src={kingProfile.pfp}
-                className="w-14 h-14 rounded-lg border border-brand-pink/30 shadow-[0_0_15px_rgba(236,72,153,0.2)] object-cover"
-                alt=""
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-lg bg-brand-pink/10 flex items-center justify-center border border-brand-pink/30 text-brand-pink shadow-[0_0_15px_rgba(236,72,153,0.1)]">
-                <Zap size={24} />
-              </div>
-            )}
-            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-black rounded-full animate-pulse" />
-          </div>
+    <div className="space-y-4">
+      {/* Section Title */}
+      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-corp-500">
+        Current Operator
+      </h3>
 
-          <div className="flex-1 min-w-0">
-            <div className="text-base font-bold text-white truncate font-mono tracking-tight">
-              {kingProfile?.displayName || truncateAddress(minerState.miner)}
+      {/* Operator Info */}
+      <div className="flex items-center gap-3">
+        <div className="shrink-0 relative">
+          {kingProfile?.pfp ? (
+            <img
+              src={kingProfile.pfp}
+              className="w-9 h-9 rounded-full object-cover ring-2 ring-corp-800"
+              alt=""
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-corp-800 flex items-center justify-center text-glaze-400">
+              <Zap size={16} />
             </div>
-            <div className="text-xs text-zinc-500 font-mono truncate">
-              @{kingProfile?.username || "unknown"}
-            </div>
-          </div>
+          )}
+          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-[#131313]" />
         </div>
 
-        <div className="space-y-2">
-          <div className="flex justify-between items-center px-3 py-2 bg-black/20 rounded border border-white/5">
-            <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Time</span>
-            <div className="text-sm font-bold text-white font-mono">{glazeTimeStr}</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-corp-100 truncate">
+            {kingProfile?.displayName || truncateAddress(minerState.miner)}
           </div>
-          <div className="p-3 bg-black/20 rounded border border-white/5 space-y-1">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Glazed</span>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-white font-mono flex items-center gap-0.5">
-                  +<DonutLogo className="w-3 h-3" />{accruedDonutsStr}
-                </span>
-                <span className="text-[10px] text-zinc-600 font-mono">+${accruedValueUsdStr}</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">PNL</span>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold font-mono text-white">{pnlEthStr}</span>
-                <span className="text-[10px] text-zinc-600 font-mono">{pnlUsdStr}</span>
-              </div>
-            </div>
-            <div className="border-t border-white/10 pt-1 flex justify-between items-center">
-              <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Total</span>
-              <div className={`text-sm font-bold font-mono ${totalIsPositive ? "text-emerald-400" : "text-red-400"}`}>
-                {totalUsdStr}
-              </div>
-            </div>
+          <div className="text-xs text-corp-500 truncate">
+            @{kingProfile?.username || "unknown"}
           </div>
         </div>
       </div>
-    </Card>
+
+      {/* Stats */}
+      <div className="space-y-2.5">
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-corp-500">Time</span>
+          <span className="text-sm text-corp-100 tabular-nums font-medium">{glazeTimeStr}</span>
+        </div>
+        <div className="flex justify-between items-start">
+          <span className="text-xs text-corp-500">Glazed</span>
+          <div className="text-right">
+            <div className="text-sm text-corp-100 font-medium flex items-center justify-end gap-1">
+              <DonutLogo className="w-3.5 h-3.5" />
+              {accruedDonutsStr}
+            </div>
+            <div className="text-[11px] text-corp-500">${accruedValueUsdStr}</div>
+          </div>
+        </div>
+        <div className="flex justify-between items-start">
+          <span className="text-xs text-corp-500">PNL</span>
+          <div className="text-right">
+            <div className="text-sm text-corp-100 font-medium tabular-nums">
+              {pnlEthStr}
+            </div>
+            <div className="text-[11px] text-corp-500">
+              {pnlUsdStr}
+            </div>
+          </div>
+        </div>
+
+        <Separator className="my-2" />
+
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-corp-400 font-medium">Total</span>
+          <span className={`text-sm font-semibold tabular-nums ${totalIsPositive ? "text-emerald-400" : "text-red-400"}`}>
+            {totalUsdStr}
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }
 
-function SurveillanceLog({ feed, feedProfiles }: any) {
+function SurveillanceLog({ feed, feedProfiles, accruedDonutsStr, currentPriceEth }: any) {
   return (
-    <Card className="hidden lg:flex flex-1 min-h-0 overflow-hidden" title="SURVEILLANCE_LOG" variant="cyber" noPadding>
-      <div className="flex-1 flex flex-col-reverse overflow-y-auto custom-scrollbar p-2 space-y-1.5 space-y-reverse">
-        {feed.map((item: any, index: number) => {
-          const minerAddr = item.miner?.toLowerCase() || "";
-          const profile = minerAddr ? feedProfiles[minerAddr] : null;
-          const messageContent = !item.uri || item.uri.trim().length === 0 ? "System Override" : item.uri;
-          let displayPrice = "0.000";
-          try {
-            displayPrice = parseFloat(item.price).toFixed(3);
-          } catch {}
-          const isLatest = index === 0;
+    <div className="space-y-4">
+      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-corp-500">
+        Recent Activity
+      </h3>
 
-          return (
-            <div
-              key={item.id}
-              className={`p-2.5 rounded border transition-all duration-300 shrink-0 ${
-                isLatest
-                  ? "bg-brand-pink/10 border-brand-pink/30 shadow-[0_0_15px_rgba(236,72,153,0.15)]"
-                  : "bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/10"
-              }`}
-            >
-              <div className="flex items-start gap-2">
-                <div className="shrink-0">
-                  {profile?.pfp ? (
-                    <img src={profile.pfp} className="w-6 h-6 rounded-full border border-white/10 object-cover" alt="" />
-                  ) : (
-                    <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold ${
-                        isLatest
-                          ? "bg-brand-pink/20 text-brand-pink border border-brand-pink/30"
-                          : "bg-zinc-800 text-zinc-500 border border-white/10"
-                      }`}
-                    >
-                      {truncateAddress(item.miner).slice(0, 2)}
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="text-left text-[11px] uppercase tracking-wider text-corp-500 border-b border-white/[0.06]">
+              <th className="pb-3 font-medium w-8 pl-4">#</th>
+              <th className="pb-3 font-medium">User</th>
+              <th className="pb-3 font-medium">Message</th>
+              <th className="pb-3 font-medium text-right">Spent</th>
+              <th className="pb-3 font-medium text-right">Earned</th>
+              <th className="pb-3 font-medium text-right pr-4">Mined</th>
+            </tr>
+          </thead>
+          <tbody>
+            {feed.slice(0, 10).map((item: any, index: number) => {
+              const minerAddr = item.miner?.toLowerCase() || "";
+              const profile = minerAddr ? feedProfiles[minerAddr] : null;
+              const messageContent = !item.uri || item.uri.trim().length === 0 ? "System Override" : item.uri;
+              const isLive = index === 0;
+              let displayPrice = "0.000";
+              try {
+                displayPrice = parseFloat(item.price).toFixed(3);
+              } catch {}
+
+              return (
+                <tr
+                  key={item.id}
+                  className={`border-b border-white/[0.04] transition-colors ${
+                    isLive
+                      ? "bg-glaze-500/5 hover:bg-glaze-500/10"
+                      : "hover:bg-white/[0.02]"
+                  }`}
+                >
+                  <td className="py-3 text-xs tabular-nums pl-4">
+                    {isLive ? (
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-glaze-500 animate-pulse" />
+                      </span>
+                    ) : (
+                      <span className="text-corp-600">{index + 1}</span>
+                    )}
+                  </td>
+                  <td className="py-3">
+                    <div className="flex items-center gap-2.5">
+                      {profile?.pfp ? (
+                        <img src={profile.pfp} className="w-6 h-6 rounded-full object-cover" alt="" />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-corp-800 flex items-center justify-center text-[10px] text-corp-400">
+                          {truncateAddress(item.miner).slice(0, 2)}
+                        </div>
+                      )}
+                      <span className={`text-sm font-medium ${isLive ? "text-corp-100" : "text-corp-200"}`}>
+                        {profile?.username || truncateAddress(item.miner)}
+                      </span>
+                      {isLive && (
+                        <span className="text-[9px] font-semibold uppercase tracking-wider text-glaze-400 bg-glaze-500/20 px-1.5 py-0.5 rounded">
+                          Live
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center mb-0.5">
-                    <span
-                      className={`font-mono text-[10px] font-bold uppercase tracking-wider truncate ${
-                        isLatest ? "text-brand-pink" : "text-zinc-500"
-                      }`}
-                    >
-                      {profile?.username || truncateAddress(item.miner)}
-                    </span>
-                    <span className="font-mono text-[9px] text-zinc-600 shrink-0 ml-2">Ξ{displayPrice}</span>
-                  </div>
-                  <div className={`text-xs font-mono leading-relaxed break-words ${isLatest ? "text-white" : "text-zinc-400"}`}>
-                    <span className="opacity-50 mr-1">&gt;</span>
+                  </td>
+                  <td className={`py-3 text-sm max-w-[200px] truncate ${isLive ? "text-corp-300" : "text-corp-400"}`}>
                     {messageContent}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+                  </td>
+                  <td className={`py-3 text-sm text-right tabular-nums ${isLive ? "text-corp-100" : "text-corp-200"}`}>
+                    Ξ{displayPrice}
+                  </td>
+                  <td className={`py-3 text-sm text-right tabular-nums ${isLive ? "text-glaze-400" : "text-corp-200"}`}>
+                    {isLive ? (
+                      <span>Ξ{(currentPriceEth * 0.8).toFixed(3)}</span>
+                    ) : (
+                      `Ξ${item.earned ? parseFloat(item.earned).toFixed(3) : "0.000"}`
+                    )}
+                  </td>
+                  <td className={`py-3 text-sm text-right tabular-nums pr-4 ${isLive ? "text-glaze-400" : "text-corp-200"}`}>
+                    <div className="flex items-center justify-end gap-1">
+                      <DonutLogo className="w-3.5 h-3.5" />
+                      {isLive ? (
+                        <span>{accruedDonutsStr}</span>
+                      ) : (
+                        item.mined ? parseFloat(item.mined).toLocaleString() : "0"
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-    </Card>
+    </div>
   );
 }
 
 function TVFrame({ minerState, isGlazing, kingProfile }: any) {
   return (
-    <div className="relative w-full group flex-1 min-h-0 flex flex-col">
-      <div className="absolute -top-3 left-0 w-full flex justify-between px-1">
-        <div className="w-1/3 h-2 border-t border-l border-zinc-800 rounded-tl" />
-        <div className="w-1/3 h-2 border-t border-r border-zinc-800 rounded-tr" />
-      </div>
-
-      <div className="bg-black rounded border border-zinc-800 p-1 shadow-2xl relative z-10 flex-1 min-h-0">
+    <div className="relative w-full">
+      <div className="aspect-video bg-[#0a0a0a] rounded-2xl overflow-hidden">
         <TV uri={minerState.uri} glazing={isGlazing} overrideAvatar={kingProfile?.pfp} />
-      </div>
-
-      <div className="absolute -bottom-3 left-0 w-full flex justify-between px-1">
-        <div className="w-1/3 h-2 border-b border-l border-zinc-800 rounded-bl" />
-        <div className="w-1/3 h-2 border-b border-r border-zinc-800 rounded-br" />
       </div>
     </div>
   );
@@ -495,248 +538,162 @@ function GlazeControls({
   connectionError,
 }: any) {
   return (
-    <div className="shrink-0 flex flex-col gap-3 min-h-0">
-      <div className="grid grid-cols-2 gap-3 shrink-0">
-        <Card variant="cyber" className="justify-center" noPadding>
-          <div className="p-3 flex flex-col items-center text-center">
-            <div className="text-[10px] font-mono uppercase text-zinc-500 tracking-widest mb-1">
-              Current Glaze Rate
+    <Card title="Glaze" icon={<Zap size={14} />}>
+      <div className="flex flex-col gap-4">
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center">
+            <div className="text-xs text-corp-400 mb-1">Rate</div>
+            <div className="text-lg font-bold text-corp-50 flex items-center justify-center gap-1.5">
+              <DonutLogo className="w-4 h-4" />
+              {formatDonut(safeDps)}
+              <span className="text-sm text-corp-500 font-normal">/s</span>
             </div>
-            <div className="text-2xl font-bold font-mono text-white tracking-tighter flex items-center gap-2">
-              <DonutLogo className="w-5 h-5" />
-              {formatDonut(safeDps)} <span className="text-sm text-zinc-600">/s</span>
-            </div>
-            <div className="text-[10px] font-mono text-zinc-600 mt-1">${dpsUsd.toFixed(4)}/s</div>
+            <div className="text-xs text-corp-500">${dpsUsd.toFixed(4)}/s</div>
           </div>
-        </Card>
 
-        <Card variant="cyber" className="justify-center" noPadding>
-          <div className="p-3 flex flex-col items-center text-center">
-            <div className="text-[10px] font-mono uppercase text-zinc-500 tracking-widest mb-1">
-              Glaze Price <span className="text-green-400">(5% Rebate)</span>
+          <div className="text-center">
+            <div className="text-xs text-corp-400 mb-1">
+              Price <span className="text-emerald-400">(5% off)</span>
             </div>
-            <div className="flex items-baseline gap-2">
-              <div className="text-2xl font-bold font-mono text-brand-pink tracking-tighter">
+            <div className="flex items-baseline justify-center gap-1.5">
+              <div className="text-lg font-bold text-glaze-400">
                 Ξ{rebatePriceEth.toFixed(5)}
               </div>
-              <div className="text-base font-mono text-zinc-500 line-through">Ξ{currentPriceEth.toFixed(5)}</div>
             </div>
-            <div className="text-[10px] font-mono text-zinc-600 mt-1">${rebatePriceUsd.toFixed(2)}</div>
+            <div className="text-xs text-corp-500">${rebatePriceUsd.toFixed(2)}</div>
           </div>
-        </Card>
-      </div>
+        </div>
 
-      <Card variant="cyber" className="shrink-0" noPadding>
-        <div className="flex flex-col p-3 gap-2">
-          <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded px-3 py-2 focus-within:border-brand-pink/50 transition-colors">
-            <span className="text-brand-pink font-mono text-lg animate-pulse">_</span>
-            <input
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="ENTER PROTOCOL MESSAGE..."
-              className="w-full bg-transparent border-none text-sm font-mono text-white placeholder:text-zinc-700 focus:outline-none uppercase tracking-wider"
-              maxLength={200}
-              spellCheck={false}
-            />
-          </div>
+        {/* Input and Button */}
+        <div className="flex flex-col gap-3">
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Enter a message..."
+            className="w-full bg-corp-950/60 border border-corp-700 rounded-lg px-3 py-2.5 text-sm text-corp-100 placeholder:text-corp-600 focus:outline-none focus:border-glaze-500/50 transition-colors"
+            maxLength={200}
+            spellCheck={false}
+          />
 
           <Button
             variant="primary"
             fullWidth
             onClick={handleGlaze}
             disabled={isGlazing || !isConnected || connectionError !== null}
-            className="h-10 !text-base !rounded-sm !font-black tracking-widest shadow-[0_0_20px_rgba(236,72,153,0.4)] hover:shadow-[0_0_40px_rgba(236,72,153,0.6)] shrink-0"
+            className="h-11 !text-sm !rounded-lg !font-semibold shadow-lg shadow-glaze-500/20 hover:shadow-glaze-500/30"
           >
-            {isGlazing ? "PROCESSING..." : !isConnected ? "CONNECT WALLET" : "INITIATE GLAZE SEQUENCE"}
+            {isGlazing ? "Processing..." : !isConnected ? "Connect Wallet" : "Glaze"}
           </Button>
 
-          {connectionError && <div className="text-xs text-red-500 font-mono text-center">{connectionError}</div>}
+          {connectionError && <div className="text-xs text-red-400 text-center">{connectionError}</div>}
         </div>
-      </Card>
-    </div>
+      </div>
+    </Card>
   );
 }
 
 function GlobalMetricsCard({ stats, donutPriceUsd, halvingDisplay }: any) {
   return (
-    <Card title="GLOBAL_METRICS" variant="cyber">
-      <div className="space-y-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Activity size={12} className="text-brand-pink" />
-            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Total Mined</span>
-          </div>
-          <div className="text-2xl font-bold font-mono text-white tracking-tight flex items-center gap-2">
-            <DonutLogo className="w-5 h-5" />
+    <div className="space-y-4">
+      {/* Section Title */}
+      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-corp-500">
+        Global Stats
+      </h3>
+
+      <div className="space-y-2.5">
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-corp-500">Total Mined</span>
+          <span className="text-sm text-corp-100 font-medium flex items-center gap-1">
+            <DonutLogo className="w-3.5 h-3.5" />
             {parseFloat(stats.minted).toLocaleString()}
-          </div>
+          </span>
         </div>
-        <div className="h-px bg-white/5 w-full" />
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <DollarSign size={12} className="text-brand-pink" />
-            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Donut Price</span>
-          </div>
-          <div className="text-xl font-bold font-mono text-zinc-300 tracking-tight">${donutPriceUsd.toFixed(6)}</div>
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-corp-500">Price</span>
+          <span className="text-sm text-corp-100 font-medium tabular-nums">${donutPriceUsd.toFixed(6)}</span>
         </div>
-        <div className="h-px bg-white/5 w-full" />
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Radio size={12} className="text-brand-pink" />
-            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Next Halving</span>
-          </div>
-          <div className="text-base font-bold font-mono text-zinc-400 tracking-tight">{halvingDisplay}</div>
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-corp-500">Next Halving</span>
+          <span className="text-sm text-corp-300 tabular-nums">{halvingDisplay}</span>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
-function UserMetricsCard({ minerState, userGraphStats }: any) {
+function UserStatsCard({
+  minerState,
+  userGraphStats,
+  ethPrice,
+  donutPriceUsd,
+}: {
+  minerState: any;
+  userGraphStats: any;
+  ethPrice: number;
+  donutPriceUsd: number;
+}) {
+  const ethSpent = parseFloat(userGraphStats?.spent || "0");
+  const ethEarned = parseFloat(userGraphStats?.earned || "0");
+  const donutMined = parseFloat(userGraphStats?.mined || "0");
+
+  const ethSpentUsd = ethSpent * ethPrice;
+  const ethEarnedUsd = ethEarned * ethPrice;
+
+  const donutBalance = parseFloat(formatDonut(minerState.donutBalance));
+  const donutBalanceUsd = donutBalance * donutPriceUsd;
+  const ethBalance = parseFloat(formatEth(minerState.ethBalance, 6));
+  const ethBalanceUsd = ethBalance * ethPrice;
+
   return (
-    <Card title="USER_METRICS" variant="cyber" className="hidden lg:flex flex-1 min-h-0 overflow-hidden">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-4 content-start overflow-y-auto">
-        <div className="space-y-6">
-          <div className="space-y-1">
-            <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">Donut Balance</span>
-            <div className="text-lg font-bold font-mono text-white tracking-tight truncate flex items-center gap-2">
-              <DonutLogo className="w-4 h-4" />
-              {formatDonut(minerState.donutBalance)}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">ETH Balance</span>
-            <div className="text-lg font-bold font-mono text-zinc-300 tracking-tight truncate">
-              Ξ {formatEth(minerState.ethBalance, 4)}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">WETH Balance</span>
-            <div className="text-lg font-bold font-mono text-zinc-300 tracking-tight truncate">
-              Ξ {formatEth(minerState.wethBalance, 4)}
-            </div>
-          </div>
+    <div className="space-y-4">
+      {/* Section Title */}
+      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-corp-500">
+        Your Wallet
+      </h3>
+
+      <div className="space-y-2.5">
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-corp-500">DONUT</span>
+          <span className="text-sm text-corp-100 font-medium flex items-center gap-1">
+            <DonutLogo className="w-3.5 h-3.5" />
+            {formatDonut(minerState.donutBalance)}
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-corp-500">ETH</span>
+          <span className="text-sm text-corp-100 font-medium tabular-nums">Ξ{formatEth(minerState.ethBalance, 4)}</span>
         </div>
 
-        <div className="space-y-6 text-right">
-          <div className="space-y-1">
-            <span className="text-[9px] font-mono text-brand-pink/80 uppercase tracking-widest">Donut Mined</span>
-            <div className="text-lg font-bold font-mono text-white tracking-tight truncate flex items-center justify-end gap-2">
-              <DonutLogo className="w-4 h-4" />
-              {userGraphStats?.mined
-                ? parseFloat(userGraphStats.mined).toLocaleString("en-US", { maximumFractionDigits: 0 })
-                : "0"}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <span className="text-[9px] font-mono text-brand-pink/80 uppercase tracking-widest">ETH Spent</span>
-            <div className="text-lg font-bold font-mono text-zinc-300 tracking-tight truncate">
-              Ξ {userGraphStats?.spent ? formatEth(ethers.parseEther(userGraphStats.spent), 3) : "0.000"}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <span className="text-[9px] font-mono text-brand-pink/80 uppercase tracking-widest">WETH Earned</span>
-            <div className="text-lg font-bold font-mono text-zinc-300 tracking-tight truncate">
-              Ξ {userGraphStats?.earned ? formatEth(ethers.parseEther(userGraphStats.earned), 3) : "0.000"}
-            </div>
-          </div>
+        <Separator className="my-2" />
+
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-corp-500">ETH Spent</span>
+          <span className="text-sm text-corp-100 font-medium tabular-nums">Ξ{ethSpent.toFixed(4)}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-corp-500">ETH Earned</span>
+          <span className="text-sm text-corp-100 font-medium tabular-nums">Ξ{ethEarned.toFixed(4)}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-corp-500">DONUT Mined</span>
+          <span className="text-sm text-corp-100 font-medium flex items-center gap-1">
+            <DonutLogo className="w-3.5 h-3.5" />
+            {donutMined.toLocaleString()}
+          </span>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
+
 
 function SwapDashboard({ userAddress }: { userAddress?: `0x${string}` }) {
   return (
-    <div className="grid grid-cols-12 gap-4 lg:gap-6 h-full overflow-hidden">
-      {/* Left Column: Info */}
-      <div className="hidden lg:flex col-span-3 flex-col gap-4 h-full max-h-full overflow-hidden">
-        <Card variant="cyber" title="ABOUT_SWAP" icon={<ArrowLeftRight size={14} />}>
-          <div className="space-y-4 text-sm">
-            <p className="text-zinc-400 font-mono text-xs leading-relaxed">
-              Swap between ETH, DONUT, USDC, and all franchise tokens using KyberSwap aggregator for the best rates.
-            </p>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-mono">
-                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="text-zinc-500">Best rates across DEXs</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs font-mono">
-                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="text-zinc-500">1% slippage protection</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs font-mono">
-                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="text-zinc-500">Gas optimized routing</span>
-              </div>
-            </div>
-          </div>
-        </Card>
-        <Card variant="cyber" title="POPULAR_PAIRS" icon={<Activity size={14} />} className="flex-1">
-          <div className="space-y-2">
-            {[
-              { from: "ETH", to: "DONUT" },
-              { from: "USDC", to: "DONUT" },
-              { from: "ETH", to: "USDC" },
-            ].map((pair) => (
-              <div
-                key={`${pair.from}-${pair.to}`}
-                className="flex items-center justify-between p-2 bg-black/20 rounded border border-white/5 hover:border-brand-pink/30 transition-colors cursor-pointer"
-              >
-                <span className="text-xs font-mono text-white">{pair.from} → {pair.to}</span>
-                <span className="text-[10px] font-mono text-zinc-600">Popular</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      {/* Center Column: Swap Panel */}
-      <div className="col-span-12 lg:col-span-6 flex flex-col h-full max-h-full overflow-hidden">
-        <Card
-          variant="cyber"
-          title="SWAP"
-          icon={<ArrowLeftRight size={14} />}
-          className="flex-1 min-h-0 overflow-hidden"
-        >
-          <SwapPanel userAddress={userAddress} />
-        </Card>
-      </div>
-
-      {/* Right Column: Recent Activity */}
-      <div className="hidden lg:flex col-span-3 flex-col gap-4 h-full max-h-full overflow-hidden">
-        <Card variant="cyber" title="QUICK_LINKS" icon={<Zap size={14} />}>
-          <div className="space-y-2">
-            <a
-              href="https://dexscreener.com/base/0xd1dbb2e56533c55c3a637d13c53aeef65c5d5703"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between p-2 bg-black/20 rounded border border-white/5 hover:border-brand-pink/30 transition-colors"
-            >
-              <span className="text-xs font-mono text-white">DONUT Chart</span>
-              <span className="text-[10px] font-mono text-brand-pink">↗</span>
-            </a>
-            <a
-              href="https://kyberswap.com/swap/base"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between p-2 bg-black/20 rounded border border-white/5 hover:border-brand-pink/30 transition-colors"
-            >
-              <span className="text-xs font-mono text-white">KyberSwap</span>
-              <span className="text-[10px] font-mono text-brand-pink">↗</span>
-            </a>
-            <a
-              href="https://basescan.org/token/0xAE4a37d554C6D6F3E398546d8566B25052e0169C"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between p-2 bg-black/20 rounded border border-white/5 hover:border-brand-pink/30 transition-colors"
-            >
-              <span className="text-xs font-mono text-white">DONUT on BaseScan</span>
-              <span className="text-[10px] font-mono text-brand-pink">↗</span>
-            </a>
-          </div>
-        </Card>
+    <div className="flex items-start justify-center h-full pt-32">
+      <div className="w-full max-w-[480px] px-4">
+        <SwapPanel userAddress={userAddress} />
       </div>
     </div>
   );
@@ -756,8 +713,11 @@ function SwapPanel({ userAddress }: { userAddress?: `0x${string}` }) {
     formattedBalance,
     handleSetMax,
     quote,
+    uniV2Quote,
+    hasQuote,
     isQuoting,
     quoteError,
+    priceImpact,
     swapStep,
     swapError,
     isBusy,
@@ -766,8 +726,8 @@ function SwapPanel({ userAddress }: { userAddress?: `0x${string}` }) {
     handleSwap,
   } = useSwap();
 
-  const [showTokenSelectIn, setShowTokenSelectIn] = useState(false);
-  const [showTokenSelectOut, setShowTokenSelectOut] = useState(false);
+  const [tokenSelectMode, setTokenSelectMode] = useState<"in" | "out" | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const formatBalance = (bal: string) => {
     const num = parseFloat(bal);
@@ -778,7 +738,7 @@ function SwapPanel({ userAddress }: { userAddress?: `0x${string}` }) {
   };
 
   const formatOutput = (amt: string) => {
-    if (!amt) return "0.0";
+    if (!amt) return "0";
     const num = parseFloat(amt);
     if (num < 0.0001) return num.toExponential(2);
     if (num < 1) return num.toFixed(6);
@@ -786,288 +746,273 @@ function SwapPanel({ userAddress }: { userAddress?: `0x${string}` }) {
     return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
   };
 
-  const TokenIcon = ({ token, size = "md" }: { token: SwapToken; size?: "sm" | "md" | "lg" }) => {
+  const TokenIcon = ({ token, size = "md" }: { token: SwapToken; size?: "sm" | "md" | "lg" | "xl" }) => {
     const sizeClasses = {
-      sm: "w-4 h-4",
-      md: "w-6 h-6",
-      lg: "w-8 h-8",
+      sm: "w-5 h-5",
+      md: "w-7 h-7",
+      lg: "w-9 h-9",
+      xl: "w-10 h-10",
     };
 
-    // Use DONUT logo component for DONUT token
     if (token.symbol === "DONUT") {
       return <DonutLogo className={sizeClasses[size]} />;
     }
 
-    // Use logo URL if available
     if (token.logoUrl) {
       return (
         <img
           src={token.logoUrl}
           alt={token.symbol}
-          className={`${sizeClasses[size]} rounded-full object-cover`}
-          onError={(e) => {
-            // Fallback to letter on error
-            (e.target as HTMLImageElement).style.display = "none";
-            (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
-          }}
+          className={`${sizeClasses[size]} rounded-full object-cover bg-corp-800`}
         />
       );
     }
 
-    // Fallback to first letter
     return (
-      <div className={`${sizeClasses[size]} rounded-full bg-brand-pink/20 flex items-center justify-center text-[10px] font-bold text-brand-pink`}>
-        {token.symbol.slice(0, 1)}
+      <div className={`${sizeClasses[size]} rounded-full bg-corp-700 flex items-center justify-center text-xs font-bold text-corp-300`}>
+        {token.symbol.slice(0, 2)}
       </div>
     );
   };
 
-  const TokenSelector = ({
-    selected,
-    onSelect,
-    show,
-    onClose,
-    exclude,
-  }: {
-    selected: SwapToken;
-    onSelect: (token: SwapToken) => void;
-    show: boolean;
-    onClose: () => void;
-    exclude: string;
-  }) => {
-    if (!show) return null;
+  // Quick select tokens
+  const quickTokens = allTokens.filter((t) => ["ETH", "DONUT", "USDC", "WETH"].includes(t.symbol));
 
-    const baseTokens = allTokens.filter((t) => ["ETH", "DONUT", "USDC"].includes(t.symbol));
-    const franchiseTokensList = allTokens.filter((t) => !["ETH", "DONUT", "USDC"].includes(t.symbol));
+  // Filter tokens by search
+  const filteredTokens = allTokens.filter((t) =>
+    t.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-    const handleSelect = (token: SwapToken) => {
-      onSelect(token);
-      onClose();
-    };
-
-    const handleClose = (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onClose();
-    };
-
-    return (
-      <div className="absolute inset-0 bg-zinc-950 z-50 rounded-lg flex flex-col border border-zinc-800">
-        <div className="flex justify-between items-center p-4 border-b border-zinc-800 shrink-0">
-          <span className="text-sm font-mono font-bold text-white">SELECT TOKEN</span>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
-          >
-            <span className="text-lg leading-none">×</span>
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
-          {baseTokens.map((token) => (
-            <button
-              key={token.address}
-              type="button"
-              onClick={() => handleSelect(token)}
-              disabled={token.address === exclude}
-              className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                token.address === exclude
-                  ? "opacity-30 cursor-not-allowed"
-                  : "hover:bg-zinc-800/80 hover:border-brand-pink/30"
-              } border border-transparent`}
-            >
-              <TokenIcon token={token} size="lg" />
-              <div className="text-left flex-1">
-                <div className="font-mono font-bold text-white text-sm">{token.symbol}</div>
-                <div className="text-[10px] text-zinc-500">{token.name}</div>
-              </div>
-              {token.address === selected.address && (
-                <div className="w-2 h-2 rounded-full bg-brand-pink" />
-              )}
-            </button>
-          ))}
-          {franchiseTokensList.length > 0 && (
-            <>
-              <div className="text-[10px] font-mono text-zinc-600 px-3 pt-3 pb-1 uppercase tracking-wider border-t border-zinc-800/50 mt-2">
-                Franchise Tokens ({franchiseTokensList.length})
-              </div>
-              {franchiseTokensList.map((token) => (
-                <button
-                  key={token.address}
-                  type="button"
-                  onClick={() => handleSelect(token)}
-                  disabled={token.address === exclude}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                    token.address === exclude
-                      ? "opacity-30 cursor-not-allowed"
-                      : "hover:bg-zinc-800/80 hover:border-brand-pink/30"
-                  } border border-transparent`}
-                >
-                  <TokenIcon token={token} size="lg" />
-                  <div className="text-left flex-1">
-                    <div className="font-mono font-bold text-white text-sm">{token.symbol}</div>
-                    <div className="text-[10px] text-zinc-500 truncate max-w-[150px]">{token.name}</div>
-                  </div>
-                  {token.address === selected.address && (
-                    <div className="w-2 h-2 rounded-full bg-brand-pink" />
-                  )}
-                </button>
-              ))}
-            </>
-          )}
-        </div>
-      </div>
-    );
+  const handleTokenSelect = (token: SwapToken) => {
+    if (tokenSelectMode === "in") setTokenIn(token);
+    else setTokenOut(token);
+    setTokenSelectMode(null);
+    setSearchQuery("");
   };
+
+  const excludeAddress = tokenSelectMode === "in" ? tokenOut.address : tokenIn.address;
 
   const getButtonText = () => {
-    if (!userAddress) return "CONNECT WALLET";
-    if (swapStep === "approving") return "APPROVING...";
-    if (swapStep === "swapping" || swapStep === "confirming") return "SWAPPING...";
-    if (isQuoting) return "GETTING QUOTE...";
-    if (quoteError) return quoteError.toUpperCase();
-    if (needsApproval) return `APPROVE ${tokenIn.symbol}`;
-    if (!inputAmount || parseFloat(inputAmount) <= 0) return "ENTER AMOUNT";
-    if (!quote) return "NO ROUTE FOUND";
-    return "SWAP";
+    if (swapStep === "approving") return "Approving...";
+    if (swapStep === "swapping" || swapStep === "confirming") return "Swapping...";
+    if (isQuoting) return "Finding route...";
+    if (hasQuote && needsApproval) return `Approve ${tokenIn.symbol}`;
+    return "Swap";
   };
 
   const handleButtonClick = () => {
-    if (needsApproval) {
-      handleApprove();
-    } else {
-      handleSwap();
-    }
+    if (needsApproval) handleApprove();
+    else handleSwap();
   };
 
+  const isButtonDisabled = !userAddress || isBusy || !inputAmount || parseFloat(inputAmount) <= 0 || (!needsApproval && !hasQuote);
+
   return (
-    <div className="flex flex-col gap-4 h-full relative">
-      {/* Token Select Modals */}
-      <TokenSelector
-        selected={tokenIn}
-        onSelect={setTokenIn}
-        show={showTokenSelectIn}
-        onClose={() => setShowTokenSelectIn(false)}
-        exclude={tokenOut.address}
-      />
-      <TokenSelector
-        selected={tokenOut}
-        onSelect={setTokenOut}
-        show={showTokenSelectOut}
-        onClose={() => setShowTokenSelectOut(false)}
-        exclude={tokenIn.address}
-      />
+    <>
+      {/* Token Select Dialog */}
+      <Dialog open={tokenSelectMode !== null} onOpenChange={() => { setTokenSelectMode(null); setSearchQuery(""); }}>
+        <DialogContent className="max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Select a token</DialogTitle>
+            <DialogClose onClose={() => { setTokenSelectMode(null); setSearchQuery(""); }} />
+          </DialogHeader>
 
-      {/* From Token */}
-      <div className="bg-black/40 border border-white/10 rounded-lg p-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">From</span>
+          {/* Search */}
+          <div className="px-4 pb-3">
+            <SearchInput
+              placeholder="Search by name or symbol"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {/* Quick Select */}
+          {!searchQuery && (
+            <div className="px-4 pb-3">
+              <div className="flex flex-wrap gap-2">
+                {quickTokens.map((token) => (
+                  <button
+                    key={token.address}
+                    onClick={() => handleTokenSelect(token)}
+                    disabled={token.address === excludeAddress}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-full border transition-colors ${
+                      token.address === excludeAddress
+                        ? "opacity-30 cursor-not-allowed border-white/5 bg-white/5"
+                        : "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20"
+                    }`}
+                  >
+                    <TokenIcon token={token} size="sm" />
+                    <span className="text-sm font-medium text-corp-100">{token.symbol}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Token List */}
+          <div className="flex-1 overflow-y-auto px-2 pb-4">
+            <div className="px-2 py-2 text-xs text-corp-500 flex items-center gap-2">
+              <span>Popular tokens</span>
+            </div>
+            {filteredTokens.map((token) => {
+              const isExcluded = token.address === excludeAddress;
+              return (
+                <button
+                  key={token.address}
+                  onClick={() => handleTokenSelect(token)}
+                  disabled={isExcluded}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors ${
+                    isExcluded ? "opacity-30 cursor-not-allowed" : "hover:bg-white/5"
+                  }`}
+                >
+                  <TokenIcon token={token} size="lg" />
+                  <div className="flex-1 text-left">
+                    <div className="font-medium text-corp-50">{token.name}</div>
+                    <div className="text-sm text-corp-500">{token.symbol}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Swap Card */}
+      <div>
+        {/* Sell Section */}
+        <div className="border border-corp-800 rounded-2xl p-4">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-sm text-corp-400">Sell</span>
+            <button
+              onClick={handleSetMax}
+              className="text-sm text-corp-500 hover:text-corp-300 transition-colors"
+            >
+              {formatBalance(formattedBalance)} {tokenIn.symbol}
+            </button>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <input
+                type="text"
+                value={inputAmount}
+                onChange={(e) => setInputAmount(e.target.value)}
+                placeholder="0"
+                className="w-full bg-transparent text-[36px] font-medium text-corp-50 placeholder:text-corp-600 focus:outline-none"
+              />
+              <div className="text-sm text-corp-500 mt-1">
+                {inputAmount && parseFloat(inputAmount) > 0 ? `$${(parseFloat(inputAmount) * (tokenIn.symbol === "ETH" || tokenIn.symbol === "WETH" ? 3500 : 0.06)).toFixed(2)}` : "$0"}
+              </div>
+            </div>
+            <button
+              onClick={() => setTokenSelectMode("in")}
+              className="flex items-center gap-2 bg-corp-800 hover:bg-corp-700 pl-2 pr-3 py-2 rounded-full transition-colors shrink-0"
+            >
+              <TokenIcon token={tokenIn} size="md" />
+              <span className="font-semibold text-corp-50">{tokenIn.symbol}</span>
+              <ChevronDown size={16} className="text-corp-400" />
+            </button>
+          </div>
+        </div>
+
+        {/* Swap Arrow */}
+        <div className="flex justify-center -my-5 relative z-10">
           <button
-            onClick={handleSetMax}
-            className="text-[10px] font-mono text-zinc-600 hover:text-brand-pink transition-colors"
+            onClick={handleFlip}
+            className="bg-[#131313] p-1 rounded-xl border-4 border-[#131313]"
           >
-            Balance: {formatBalance(formattedBalance)} <span className="text-brand-pink">MAX</span>
+            <div className="bg-corp-800 hover:bg-corp-700 p-2 rounded-lg transition-colors">
+              <ArrowDown size={16} className="text-corp-300" />
+            </div>
           </button>
         </div>
-        <div className="flex items-center gap-3">
-          <input
-            type="text"
-            value={inputAmount}
-            onChange={(e) => setInputAmount(e.target.value)}
-            placeholder="0.0"
-            className="flex-1 bg-transparent text-2xl font-mono text-white placeholder:text-zinc-700 focus:outline-none"
-          />
-          <button
-            onClick={() => setShowTokenSelectIn(true)}
-            className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 px-4 py-2.5 rounded-lg transition-colors border border-zinc-700 hover:border-zinc-600"
-          >
-            <TokenIcon token={tokenIn} size="md" />
-            <span className="font-mono font-bold text-white">{tokenIn.symbol}</span>
-            <span className="text-zinc-500 text-xs">▼</span>
-          </button>
-        </div>
-      </div>
 
-      {/* Flip Button */}
-      <div className="flex justify-center -my-2 relative z-10">
-        <button
-          onClick={handleFlip}
-          className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 p-2 rounded-lg transition-colors"
-        >
-          <ArrowLeftRight size={16} className="text-zinc-400" />
-        </button>
-      </div>
-
-      {/* To Token */}
-      <div className="bg-black/40 border border-white/10 rounded-lg p-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">To</span>
+        {/* Buy Section */}
+        <div className="bg-corp-800 rounded-2xl p-4">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-sm text-corp-400">Buy</span>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-[36px] font-medium">
+                {isQuoting ? (
+                  <span className="text-corp-600 animate-pulse">...</span>
+                ) : outputAmount && parseFloat(outputAmount) > 0 ? (
+                  <span className="text-corp-50">{formatOutput(outputAmount)}</span>
+                ) : (
+                  <span className="text-corp-600">0</span>
+                )}
+              </div>
+              <div className="text-sm text-corp-500 mt-1">
+                {outputAmount && parseFloat(outputAmount) > 0 ? `$${(parseFloat(outputAmount) * (tokenOut.symbol === "ETH" || tokenOut.symbol === "WETH" ? 3500 : 0.06)).toFixed(2)}` : "$0"}
+              </div>
+            </div>
+            <button
+              onClick={() => setTokenSelectMode("out")}
+              className="flex items-center gap-2 bg-corp-700 hover:bg-corp-600 pl-2 pr-3 py-2 rounded-full transition-colors shrink-0"
+            >
+              <TokenIcon token={tokenOut} size="md" />
+              <span className="font-semibold text-corp-50">{tokenOut.symbol}</span>
+              <ChevronDown size={16} className="text-corp-400" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex-1 text-2xl font-mono text-white">
-            {isQuoting ? (
-              <span className="text-zinc-600 animate-pulse">...</span>
-            ) : (
-              formatOutput(outputAmount)
+
+        {/* Rate Info */}
+        {hasQuote && outputAmount && (
+          <div className="flex justify-between items-center px-4 py-3 text-sm text-corp-500">
+            <span>
+              1 {tokenIn.symbol} = {(parseFloat(outputAmount) / parseFloat(inputAmount || "1")).toFixed(4)} {tokenOut.symbol}
+            </span>
+            {quote?.routeSummary && (
+              <span>~${parseFloat(quote.routeSummary.gasUsd || "0").toFixed(2)} gas</span>
             )}
           </div>
+        )}
+
+        {/* Error */}
+        {(swapError || quoteError) && (
+          <div className="text-sm text-red-400 text-center px-4 py-2">{swapError || quoteError}</div>
+        )}
+
+        {/* Action Button */}
+        <div className="mt-1">
           <button
-            onClick={() => setShowTokenSelectOut(true)}
-            className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 px-4 py-2.5 rounded-lg transition-colors border border-zinc-700 hover:border-zinc-600"
+            onClick={handleButtonClick}
+            disabled={isButtonDisabled}
+            className={`w-full py-4 rounded-2xl font-semibold text-lg transition-all ${
+              isButtonDisabled
+                ? "bg-glaze-500/30 text-glaze-400/50 cursor-not-allowed"
+                : "bg-glaze-500 text-white hover:bg-glaze-600 shadow-lg shadow-glaze-500/25"
+            }`}
           >
-            <TokenIcon token={tokenOut} size="md" />
-            <span className="font-mono font-bold text-white">{tokenOut.symbol}</span>
-            <span className="text-zinc-500 text-xs">▼</span>
+            {getButtonText()}
           </button>
         </div>
+
+        {/* Swap Details */}
+        {hasQuote && outputAmount && (
+          <div className="mt-4 space-y-2 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-corp-500">Minimum received</span>
+              <span className="text-corp-300">
+                {(parseFloat(outputAmount) * 0.99).toFixed(6)} {tokenOut.symbol}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-corp-500">Price impact</span>
+              <span className={priceImpact > 5 ? "text-red-400" : priceImpact > 2 ? "text-yellow-400" : "text-corp-300"}>
+                {priceImpact.toFixed(2)}%
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-corp-500">Slippage tolerance</span>
+              <span className="text-corp-300">1%</span>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Swap Info */}
-      {quote && (
-        <div className="bg-black/20 border border-white/5 rounded-lg p-3 space-y-2">
-          <div className="flex justify-between text-xs font-mono">
-            <span className="text-zinc-500">Rate</span>
-            <span className="text-zinc-400">
-              1 {tokenIn.symbol} ≈ {(parseFloat(outputAmount) / parseFloat(inputAmount || "1")).toFixed(4)} {tokenOut.symbol}
-            </span>
-          </div>
-          <div className="flex justify-between text-xs font-mono">
-            <span className="text-zinc-500">Slippage</span>
-            <span className="text-zinc-400">1%</span>
-          </div>
-          <div className="flex justify-between text-xs font-mono">
-            <span className="text-zinc-500">Est. Gas</span>
-            <span className="text-zinc-400">${parseFloat(quote.routeSummary.gasUsd || "0").toFixed(2)}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Error */}
-      {swapError && (
-        <div className="text-xs font-mono text-red-500 text-center">{swapError}</div>
-      )}
-
-      {/* Swap Button */}
-      <Button
-        variant="primary"
-        fullWidth
-        onClick={handleButtonClick}
-        disabled={!userAddress || isBusy || (!needsApproval && !quote)}
-        className="h-12 !text-base !font-black tracking-widest shadow-[0_0_20px_rgba(236,72,153,0.4)] hover:shadow-[0_0_40px_rgba(236,72,153,0.6)]"
-      >
-        {getButtonText()}
-      </Button>
-
-      {/* Quick Links */}
-      <div className="flex justify-center gap-4 text-[10px] font-mono text-zinc-600">
-        <a href="https://kyberswap.com" target="_blank" rel="noopener noreferrer" className="hover:text-brand-pink transition-colors">
-          KyberSwap ↗
-        </a>
-        <a href="https://dexscreener.com/base/0xd1dbb2e56533c55c3a637d13c53aeef65c5d5703" target="_blank" rel="noopener noreferrer" className="hover:text-brand-pink transition-colors">
-          Chart ↗
-        </a>
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -1077,9 +1022,8 @@ function AuctionsDashboard({ userAddress }: { userAddress?: `0x${string}` }) {
       {/* Center Column: Auctions Panel */}
       <div className="col-span-12 lg:col-span-6 lg:col-start-4 flex flex-col h-full max-h-full overflow-hidden">
         <Card
-          variant="cyber"
-          title="RIG_AUCTIONS"
-          icon={<LayoutGrid size={14} />}
+          title="Rig Auctions"
+          icon={<Gavel size={14} />}
           className="flex-1 min-h-0 overflow-hidden"
         >
           <AuctionsPanel userAddress={userAddress} />
@@ -1097,8 +1041,7 @@ function FranchiseDashboard({ userAddress }: { userAddress?: `0x${string}` }) {
       {/* Left Column: Explore Rigs */}
       <div className="col-span-12 lg:col-span-7 flex flex-col h-full max-h-full overflow-hidden">
         <Card
-          variant="cyber"
-          title="EXPLORE_RIGS"
+          title="Explore Rigs"
           icon={<Store size={14} />}
           className="flex-1 min-h-0 overflow-hidden"
           noPadding
@@ -1110,8 +1053,7 @@ function FranchiseDashboard({ userAddress }: { userAddress?: `0x${string}` }) {
       {/* Right Column: Rig Detail */}
       <div className="col-span-12 lg:col-span-5 flex flex-col h-full max-h-full overflow-hidden">
         <Card
-          variant="cyber"
-          title={selectedRig ? `RIG_${selectedRig.symbol}` : "RIG_DETAILS"}
+          title={selectedRig ? selectedRig.name : "Rig Details"}
           icon={<Zap size={14} />}
           className="flex-1 min-h-0 overflow-hidden"
         >
@@ -1148,8 +1090,7 @@ function GovernDashboard({
       {/* Left Column: Stake Panel */}
       <div className="col-span-12 lg:col-span-5 flex flex-col h-full max-h-full overflow-hidden">
         <Card
-          variant="cyber"
-          title="STAKE_DONUT"
+          title="Stake DONUT"
           icon={<Landmark size={14} />}
           className="flex-1 min-h-0 overflow-hidden"
         >
@@ -1167,8 +1108,7 @@ function GovernDashboard({
       {/* Right Column: Vote Panel */}
       <div className="col-span-12 lg:col-span-7 flex flex-col h-full max-h-full overflow-hidden">
         <Card
-          variant="cyber"
-          title="VOTE_STRATEGIES"
+          title="Vote on Strategies"
           icon={<Activity size={14} />}
           className="flex-1 min-h-0 overflow-hidden"
         >

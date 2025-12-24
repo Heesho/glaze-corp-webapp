@@ -77,32 +77,26 @@ export function LaunchPanel({ userAddress, onSuccess }: LaunchPanelProps) {
   return (
     <div className="flex flex-col h-full gap-3 overflow-hidden">
       {/* Cost Info */}
-      <Card variant="cyber" noPadding className="shrink-0">
-        <div className="p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
-                Launch Cost
-              </div>
-              <div className="flex items-center gap-2">
-                <DonutLogo className="w-5 h-5" />
-                <span className="text-xl font-bold font-mono text-brand-pink">
-                  {formatDonut(launchCost)}
-                </span>
-              </div>
+      <Card size="sm" className="shrink-0">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs text-corp-400 mb-1">Launch Cost</div>
+            <div className="flex items-center gap-2">
+              <DonutLogo className="w-5 h-5" />
+              <span className="text-xl font-bold text-glaze-400">
+                {formatDonut(launchCost)}
+              </span>
             </div>
-            <div className="text-right">
-              <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
-                Your Balance
-              </div>
-              <div className="flex items-center gap-2 justify-end">
-                <DonutLogo className="w-4 h-4" />
-                <span className={`text-lg font-bold font-mono ${
-                  hasSufficientBalance() ? "text-emerald-400" : "text-red-400"
-                }`}>
-                  {donutBalance ? formatDonut(donutBalance) : "0"}
-                </span>
-              </div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-corp-400 mb-1">Your Balance</div>
+            <div className="flex items-center gap-2 justify-end">
+              <DonutLogo className="w-4 h-4" />
+              <span className={`text-lg font-bold ${
+                hasSufficientBalance() ? "text-emerald-400" : "text-red-400"
+              }`}>
+                {donutBalance ? formatDonut(donutBalance) : "0"}
+              </span>
             </div>
           </div>
         </div>
@@ -111,78 +105,64 @@ export function LaunchPanel({ userAddress, onSuccess }: LaunchPanelProps) {
       {/* Form */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-3">
         {/* Token Name */}
-        <Card variant="cyber" noPadding>
-          <div className="p-3">
-            <label className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-2 block">
-              Token Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Super Rig"
-              maxLength={32}
-              className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-sm font-mono text-white placeholder:text-zinc-700 focus:outline-none focus:border-brand-pink/50"
-            />
-          </div>
+        <Card size="sm">
+          <label className="text-xs text-corp-400 mb-2 block">Token Name</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Super Rig"
+            maxLength={32}
+            className="w-full bg-corp-950/60 border border-corp-700 rounded-lg px-3 py-2.5 text-sm text-corp-50 placeholder:text-corp-600 focus:outline-none focus:border-glaze-500/50 transition-colors"
+          />
         </Card>
 
         {/* Token Symbol */}
-        <Card variant="cyber" noPadding>
-          <div className="p-3">
-            <label className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-2 block">
-              Token Symbol
-            </label>
-            <input
-              type="text"
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              placeholder="e.g. SRIG"
-              maxLength={8}
-              className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-sm font-mono text-white placeholder:text-zinc-700 focus:outline-none focus:border-brand-pink/50 uppercase"
-            />
-          </div>
+        <Card size="sm">
+          <label className="text-xs text-corp-400 mb-2 block">Token Symbol</label>
+          <input
+            type="text"
+            value={symbol}
+            onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+            placeholder="e.g. SRIG"
+            maxLength={8}
+            className="w-full bg-corp-950/60 border border-corp-700 rounded-lg px-3 py-2.5 text-sm text-corp-50 placeholder:text-corp-600 focus:outline-none focus:border-glaze-500/50 uppercase transition-colors"
+          />
         </Card>
 
         {/* Description */}
-        <Card variant="cyber" noPadding>
-          <div className="p-3">
-            <label className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-2 block">
-              Description (Optional)
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your rig..."
-              maxLength={200}
-              rows={3}
-              className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-sm font-mono text-white placeholder:text-zinc-700 focus:outline-none focus:border-brand-pink/50 resize-none"
-            />
-          </div>
+        <Card size="sm">
+          <label className="text-xs text-corp-400 mb-2 block">Description (Optional)</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe your rig..."
+            maxLength={200}
+            rows={3}
+            className="w-full bg-corp-950/60 border border-corp-700 rounded-lg px-3 py-2.5 text-sm text-corp-50 placeholder:text-corp-600 focus:outline-none focus:border-glaze-500/50 resize-none transition-colors"
+          />
         </Card>
 
         {/* Launch Parameters Info */}
-        <Card variant="cyber" noPadding className="bg-zinc-900/30">
-          <div className="p-3 space-y-2">
-            <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">
-              Launch Parameters
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+        <Card size="sm" className="bg-corp-800/30">
+          <div className="space-y-2">
+            <div className="text-xs text-corp-400">Launch Parameters</div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-zinc-600">Rig Epoch:</span>
-                <span className="text-white">1 hour</span>
+                <span className="text-corp-500">Rig Epoch:</span>
+                <span className="text-corp-200 font-medium">1 hour</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-zinc-600">Rig Multiplier:</span>
-                <span className="text-white">2x</span>
+                <span className="text-corp-500">Rig Multiplier:</span>
+                <span className="text-corp-200 font-medium">2x</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-zinc-600">Auction Epoch:</span>
-                <span className="text-white">24 hours</span>
+                <span className="text-corp-500">Auction Epoch:</span>
+                <span className="text-corp-200 font-medium">24 hours</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-zinc-600">Auction Mult:</span>
-                <span className="text-white">1.2x</span>
+                <span className="text-corp-500">Auction Mult:</span>
+                <span className="text-corp-200 font-medium">1.2x</span>
               </div>
             </div>
           </div>
@@ -195,7 +175,7 @@ export function LaunchPanel({ userAddress, onSuccess }: LaunchPanelProps) {
         fullWidth
         onClick={handleSubmit}
         disabled={isBusy || !canLaunch}
-        className={`shrink-0 !py-3 ${
+        className={`shrink-0 h-11 !font-semibold ${
           result === "success"
             ? "!bg-emerald-500"
             : result === "failure"
@@ -208,9 +188,9 @@ export function LaunchPanel({ userAddress, onSuccess }: LaunchPanelProps) {
       </Button>
 
       {!hasSufficientBalance() && userAddress && (
-        <div className="flex items-center gap-2 p-2 bg-red-500/10 border border-red-500/30 rounded text-center shrink-0">
+        <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-center shrink-0">
           <AlertCircle size={14} className="text-red-400 shrink-0" />
-          <span className="text-[10px] font-mono text-red-400">
+          <span className="text-xs text-red-400">
             You need {formatDonut(launchCost)} DONUT to launch a rig
           </span>
         </div>

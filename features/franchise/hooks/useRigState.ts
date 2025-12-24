@@ -31,6 +31,7 @@ export interface RigState {
 
 export interface RigInfo {
   address: Address;
+  unitAddress: Address;
   tokenName: string;
   tokenSymbol: string;
 }
@@ -92,6 +93,7 @@ export function useRigState(rig?: SubgraphRig | null) {
   // Build rigInfo from subgraph data
   const rigInfo: RigInfo | null = rig ? {
     address: rigAddress!,
+    unitAddress: rig.unit as Address,
     tokenName: rig.name,
     tokenSymbol: rig.symbol,
   } : null;

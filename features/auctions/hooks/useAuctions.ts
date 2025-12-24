@@ -1,34 +1,49 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { base } from "wagmi/chains";
-import { type Address } from "viem";
+import { type Address, zeroAddress } from "viem";
 
 import {
-  LAUNCHPAD_ADDRESSES,
-  LAUNCHPAD_MULTICALL_ABI,
+  LSG_ADDRESSES,
+  LSG_MULTICALL_ABI,
   ERC20_ABI,
+  PAYMENT_TOKEN_SYMBOLS,
 } from "@/lib/blockchain/contracts";
-import { getRigs, type SubgraphRig } from "@/lib/api/launchpad";
 import { POLLING_INTERVAL_MS } from "@/config/constants";
 
-export interface AuctionData {
-  rig: SubgraphRig;
+// Strategy data from LSG Multicall
+export interface StrategyAuctionData {
+  strategy: Address;
+  bribe: Address;
+  bribeRouter: Address;
+  paymentToken: Address;
+  paymentReceiver: Address;
+  isAlive: boolean;
+  paymentTokenDecimals: number;
+  strategyWeight: bigint;
+  votePercent: bigint;
+  claimable: bigint;
+  pendingRevenue: bigint;
+  routerRevenue: bigint;
+  totalPotentialRevenue: bigint;
+  epochPeriod: bigint;
+  priceMultiplier: bigint;
+  minInitPrice: bigint;
   epochId: bigint;
   initPrice: bigint;
   startTime: bigint;
-  price: bigint;
-  accountLpBalance: bigint;
-  accountLpAllowance: bigint;
+  currentPrice: bigint;
+  revenueBalance: bigint;
+  accountVotes: bigint;
+  accountPaymentTokenBalance: bigint;
 }
 
 export type BuyStep = "idle" | "approving" | "buying";
 
 export function useAuctions(userAddress?: Address) {
-  const [rigs, setRigs] = useState<SubgraphRig[]>([]);
-  const [selectedRig, setSelectedRig] = useState<SubgraphRig | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedStrategy, setSelectedStrategy] = useState<StrategyAuctionData | null>(null);
   const [buyStep, setBuyStep] = useState<BuyStep>("idle");
   const [buyResult, setBuyResult] = useState<"success" | "failure" | null>(null);
 
@@ -40,44 +55,58 @@ export function useAuctions(userAddress?: Address) {
     }
   }, [buyResult]);
 
-  // Fetch rigs
-  const fetchRigs = useCallback(async () => {
-    try {
-      const fetchedRigs = await getRigs(20, 0, "revenue", "desc");
-      setRigs(fetchedRigs);
-      if (!selectedRig && fetchedRigs.length > 0) {
-        setSelectedRig(fetchedRigs[0]);
-      }
-    } catch (error) {
-      console.error("Failed to fetch rigs:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedRig]);
-
-  useEffect(() => {
-    fetchRigs();
-    const interval = setInterval(fetchRigs, POLLING_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [fetchRigs]);
-
-  // Get auction state for selected rig
-  const { data: auctionState, refetch: refetchAuction } = useReadContract({
-    address: LAUNCHPAD_ADDRESSES.multicall as Address,
-    abi: LAUNCHPAD_MULTICALL_ABI,
-    functionName: "getAuctionState",
-    args: [
-      (selectedRig?.id as Address) ?? "0x0000000000000000000000000000000000000000",
-      userAddress ?? "0x0000000000000000000000000000000000000000",
-    ],
+  // Fetch all strategies data
+  const { data: rawStrategiesData, refetch: refetchStrategies, isLoading } = useReadContract({
+    address: LSG_ADDRESSES.lsgMulticall as Address,
+    abi: LSG_MULTICALL_ABI,
+    functionName: "getAllStrategiesData",
+    args: [userAddress ?? zeroAddress],
     chainId: base.id,
     query: {
-      enabled: !!selectedRig,
       refetchInterval: POLLING_INTERVAL_MS,
     },
   });
 
-  // Write hooks for buying
+  // Parse strategies data
+  const strategies = useMemo(() => {
+    if (!rawStrategiesData) return [];
+    return (rawStrategiesData as unknown as StrategyAuctionData[]).filter((s) => s.isAlive);
+  }, [rawStrategiesData]);
+
+  // Auto-select first strategy
+  useEffect(() => {
+    if (!selectedStrategy && strategies.length > 0) {
+      setSelectedStrategy(strategies[0]);
+    }
+  }, [strategies, selectedStrategy]);
+
+  // Update selected strategy when data refreshes
+  useEffect(() => {
+    if (selectedStrategy && strategies.length > 0) {
+      const updated = strategies.find(
+        (s) => s.strategy.toLowerCase() === selectedStrategy.strategy.toLowerCase()
+      );
+      if (updated) {
+        setSelectedStrategy(updated);
+      }
+    }
+  }, [strategies, selectedStrategy]);
+
+  // Check allowance for payment token
+  const { data: paymentTokenAllowance, refetch: refetchAllowance } = useReadContract({
+    address: selectedStrategy?.paymentToken as Address,
+    abi: ERC20_ABI,
+    functionName: "allowance",
+    args: userAddress && selectedStrategy
+      ? [userAddress, LSG_ADDRESSES.lsgMulticall as Address]
+      : undefined,
+    chainId: base.id,
+    query: {
+      enabled: !!userAddress && !!selectedStrategy,
+    },
+  });
+
+  // Write hooks
   const {
     data: approveTxHash,
     writeContract: writeApprove,
@@ -108,13 +137,14 @@ export function useAuctions(userAddress?: Address) {
     if (approveReceipt?.status === "success") {
       setBuyStep("idle");
       resetApprove();
-      refetchAuction();
+      refetchAllowance();
+      refetchStrategies();
     } else if (approveReceipt?.status === "reverted") {
       setBuyResult("failure");
       setBuyStep("idle");
       resetApprove();
     }
-  }, [approveReceipt, resetApprove, refetchAuction]);
+  }, [approveReceipt, resetApprove, refetchAllowance, refetchStrategies]);
 
   // Handle buy completion
   useEffect(() => {
@@ -122,25 +152,28 @@ export function useAuctions(userAddress?: Address) {
       setBuyResult("success");
       setBuyStep("idle");
       resetBuy();
-      refetchAuction();
+      refetchStrategies();
     } else if (buyReceipt?.status === "reverted") {
       setBuyResult("failure");
       setBuyStep("idle");
       resetBuy();
     }
-  }, [buyReceipt, resetBuy, refetchAuction]);
+  }, [buyReceipt, resetBuy, refetchStrategies]);
 
-  // Approve LP tokens
+  // Approve payment tokens
   const handleApprove = useCallback(async () => {
-    if (!userAddress || !selectedRig) return;
+    if (!userAddress || !selectedStrategy) return;
     setBuyStep("approving");
     try {
       await writeApprove({
         account: userAddress,
-        address: selectedRig.lp as Address,
+        address: selectedStrategy.paymentToken,
         abi: ERC20_ABI,
         functionName: "approve",
-        args: [LAUNCHPAD_ADDRESSES.multicall as Address, BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")],
+        args: [
+          LSG_ADDRESSES.lsgMulticall as Address,
+          BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+        ],
         chainId: base.id,
       });
     } catch (error) {
@@ -148,32 +181,26 @@ export function useAuctions(userAddress?: Address) {
       setBuyResult("failure");
       setBuyStep("idle");
     }
-  }, [userAddress, selectedRig, writeApprove]);
+  }, [userAddress, selectedStrategy, writeApprove]);
 
-  // Buy from auction
+  // Buy from auction (distributeAndBuy)
   const handleBuy = useCallback(
-    async (lpAmount: bigint) => {
-      if (!userAddress || !selectedRig || !auctionState) return;
+    async (maxPaymentAmount: bigint) => {
+      if (!userAddress || !selectedStrategy) return;
       setBuyStep("buying");
       try {
-        const state = auctionState as {
-          epochId: bigint;
-          price: bigint;
-        };
         const deadline = BigInt(Math.floor(Date.now() / 1000) + 900); // 15 min
 
         await writeBuy({
           account: userAddress,
-          address: LAUNCHPAD_ADDRESSES.multicall as Address,
-          abi: LAUNCHPAD_MULTICALL_ABI,
-          functionName: "buy",
+          address: LSG_ADDRESSES.lsgMulticall as Address,
+          abi: LSG_MULTICALL_ABI,
+          functionName: "distributeAndBuy",
           args: [
-            selectedRig.id as Address,
-            userAddress,
-            state.epochId,
+            selectedStrategy.strategy,
+            selectedStrategy.epochId,
             deadline,
-            state.price,
-            lpAmount,
+            maxPaymentAmount,
           ],
           chainId: base.id,
         });
@@ -183,7 +210,16 @@ export function useAuctions(userAddress?: Address) {
         setBuyStep("idle");
       }
     },
-    [userAddress, selectedRig, auctionState, writeBuy]
+    [userAddress, selectedStrategy, writeBuy]
+  );
+
+  // Check if needs approval
+  const needsApproval = useCallback(
+    (amount: bigint) => {
+      if (!paymentTokenAllowance) return true;
+      return (paymentTokenAllowance as bigint) < amount;
+    },
+    [paymentTokenAllowance]
   );
 
   const isBusy =
@@ -193,24 +229,24 @@ export function useAuctions(userAddress?: Address) {
     isApproveConfirming ||
     isBuyConfirming;
 
+  // Get payment token symbol
+  const getPaymentTokenSymbol = (address: Address) => {
+    return PAYMENT_TOKEN_SYMBOLS[address.toLowerCase()] || "TOKEN";
+  };
+
   return {
-    rigs,
-    selectedRig,
-    setSelectedRig,
-    auctionState: auctionState as {
-      epochId: bigint;
-      initPrice: bigint;
-      startTime: bigint;
-      price: bigint;
-      accountLpBalance: bigint;
-      accountLpAllowance: bigint;
-    } | undefined,
+    strategies,
+    selectedStrategy,
+    setSelectedStrategy,
     isLoading,
     buyStep,
     buyResult,
     isBusy,
+    needsApproval,
     handleApprove,
     handleBuy,
-    refetchAuction,
+    refetchStrategies,
+    getPaymentTokenSymbol,
+    paymentTokenAllowance: paymentTokenAllowance as bigint | undefined,
   };
 }

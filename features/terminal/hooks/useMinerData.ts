@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ethers } from "ethers";
 import type { MinerState, FarcasterProfile, FeedItem, GraphStat } from "@/types";
 import { fetchMinerState, fetchMinerStartTime } from "@/lib/blockchain/multicall";
@@ -47,6 +47,7 @@ export function useMinerData(userAddress?: string): UseMinerDataReturn {
   const [userGraphStats, setUserGraphStats] = useState<GraphStat | null>(null);
   const [ethPrice, setEthPrice] = useState<number>(0);
   const [nextHalvingTime, setNextHalvingTime] = useState<number | null>(null);
+  const fetchedAddressesRef = useRef<Set<string>>(new Set());
 
   // Main polling cycle
   useEffect(() => {
@@ -73,6 +74,8 @@ export function useMinerData(userAddress?: string): UseMinerDataReturn {
             uri: g.uri,
             timestamp: Number(g.startTime),
             price: g.spent,
+            earned: g.earned,
+            mined: g.mined,
           }));
           setFeed(formattedFeed);
         }
@@ -115,16 +118,18 @@ export function useMinerData(userAddress?: string): UseMinerDataReturn {
   useEffect(() => {
     const loadProfiles = async () => {
       const addressesToFetch = feed
-        .map((f) => f.miner)
-        .filter((addr) => addr && !feedProfiles[addr.toLowerCase()]);
+        .map((f) => f.miner.toLowerCase())
+        .filter((addr) => addr && addr !== ethers.ZeroAddress.toLowerCase() && !fetchedAddressesRef.current.has(addr));
 
       if (addressesToFetch.length > 0) {
+        // Mark as fetched immediately to prevent duplicate requests
+        addressesToFetch.forEach((addr) => fetchedAddressesRef.current.add(addr));
         const newProfiles = await fetchFarcasterProfiles(addressesToFetch);
         setFeedProfiles((prev) => ({ ...prev, ...newProfiles }));
       }
     };
     if (feed.length > 0) loadProfiles();
-  }, [feed, feedProfiles]);
+  }, [feed]);
 
   return {
     minerState,

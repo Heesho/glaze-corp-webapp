@@ -35,15 +35,15 @@ export function useMineRig(
 
       try {
         const deadline = BigInt(Math.floor(Date.now() / 1000) + 300); // 5 minutes
-        const maxPrice = (rigState.rigPrice * 105n) / 100n; // 5% slippage
+        const maxPrice = (rigState.price * 105n) / 100n; // 5% slippage
 
         writeContract(
           {
             address: LAUNCHPAD_ADDRESSES.multicall as Address,
             abi: LAUNCHPAD_MULTICALL_ABI,
             functionName: "mine",
-            args: [rigAddress, userAddress, rigState.rigEpochId, deadline, maxPrice, uri],
-            value: rigState.rigPrice,
+            args: [rigAddress, userAddress, rigState.epochId, deadline, maxPrice, uri],
+            value: rigState.price,
             chainId: base.id,
           },
           {

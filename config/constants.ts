@@ -27,7 +27,7 @@ export const CHANNELS = [
 export type Channel = (typeof CHANNELS)[number];
 
 // Tab Types
-export type TabView = "TERMINAL" | "SWAP" | "FRANCHISE" | "GOVERN" | "AUCTIONS";
+export type TabView = "MINE" | "SWAP" | "FRANCHISE" | "GOVERN" | "AUCTIONS";
 
 // Governance Constants
 export const EPOCH_DURATION_SECONDS = 7 * 24 * 60 * 60; // 7 days

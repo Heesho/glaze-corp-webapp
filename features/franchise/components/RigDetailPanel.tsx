@@ -131,8 +131,8 @@ export function RigDetailPanel({ rig, userAddress }: RigDetailPanelProps) {
     <div className="flex flex-col h-full gap-3 overflow-hidden">
       {/* Rig Header */}
       <div className="flex items-center gap-3 p-3 bg-zinc-900/50 rounded border border-zinc-800 shrink-0">
-        <div className="w-10 h-10 rounded bg-brand-pink/20 border border-brand-pink/30 flex items-center justify-center">
-          <span className="text-brand-pink font-bold text-sm">
+        <div className="w-10 h-10 rounded bg-glaze-500/20 border border-glaze-500/30 flex items-center justify-center">
+          <span className="text-glaze-400 font-bold text-sm">
             {rig.symbol?.slice(0, 2) || "?"}
           </span>
         </div>
@@ -156,7 +156,7 @@ export function RigDetailPanel({ rig, userAddress }: RigDetailPanelProps) {
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-mono font-bold rounded transition-all ${
               activeTab === tab.id
-                ? "bg-brand-pink text-white"
+                ? "bg-glaze-500 text-white"
                 : "text-zinc-500 hover:text-white hover:bg-zinc-800"
             }`}
           >
@@ -238,7 +238,7 @@ function MineTab({
     <div className="flex flex-col gap-3">
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-2">
-        <Card variant="cyber" noPadding>
+        <Card noPadding>
           <div className="p-3">
             <div className="flex items-center gap-1 mb-1">
               <Zap size={10} className="text-yellow-400" />
@@ -251,7 +251,7 @@ function MineTab({
             </div>
           </div>
         </Card>
-        <Card variant="cyber" noPadding>
+        <Card noPadding>
           <div className="p-3">
             <div className="flex items-center gap-1 mb-1">
               <Clock size={10} className="text-blue-400" />
@@ -266,7 +266,7 @@ function MineTab({
 
       {/* Current Miner */}
       {rigState?.miner && rigState.miner !== "0x0000000000000000000000000000000000000000" && (
-        <Card variant="cyber" noPadding>
+        <Card noPadding>
           <div className="p-3">
             <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
               Current Miner
@@ -282,10 +282,10 @@ function MineTab({
       )}
 
       {/* Balances */}
-      <Card variant="cyber" noPadding>
+      <Card noPadding>
         <div className="p-3">
           <div className="flex items-center gap-1 mb-2">
-            <Wallet size={10} className="text-brand-pink" />
+            <Wallet size={10} className="text-glaze-400" />
             <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">
               Your Balances
             </span>
@@ -309,7 +309,7 @@ function MineTab({
 
       {/* Mine Message Input */}
       <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded px-3 py-2">
-        <span className="text-brand-pink font-mono text-sm">_</span>
+        <span className="text-glaze-400 font-mono text-sm">_</span>
         <input
           type="text"
           value={mineMessage}
@@ -401,7 +401,7 @@ function SwapTab({
       </div>
 
       {/* Input */}
-      <Card variant="cyber" noPadding>
+      <Card noPadding>
         <div className="p-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">
@@ -440,7 +440,7 @@ function SwapTab({
       </div>
 
       {/* Output */}
-      <Card variant="cyber" noPadding>
+      <Card noPadding>
         <div className="p-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">
@@ -494,7 +494,7 @@ function ChartTab({ priceHistory, rigInfo, rigState }: any) {
       </div>
 
       {/* Chart */}
-      <Card variant="cyber" noPadding>
+      <Card noPadding>
         <div className="p-3">
           <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-2">
             Price History (24h)
@@ -504,7 +504,7 @@ function ChartTab({ priceHistory, rigInfo, rigState }: any) {
       </Card>
 
       {/* Token Stats */}
-      <Card variant="cyber" noPadding>
+      <Card noPadding>
         <div className="p-3">
           <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-2">
             Token Info

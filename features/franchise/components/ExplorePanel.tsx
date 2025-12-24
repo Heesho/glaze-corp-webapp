@@ -54,10 +54,10 @@ function RigCard({ rig, onClick, isSelected, isBumped }: { rig: SubgraphRig; onC
       onClick={onClick}
       className={`w-full text-left bg-zinc-900/50 hover:bg-zinc-800/50 border rounded-lg transition-all flex flex-col overflow-hidden ${
         isSelected
-          ? "border-brand-pink border-2 shadow-[0_0_15px_rgba(236,72,153,0.4)]"
+          ? "border-glaze-500 border-2 shadow-[0_0_15px_rgba(236,72,153,0.4)]"
           : isBumped
           ? "border-emerald-400 border-2 animate-bump-glow"
-          : "border-zinc-800 hover:border-brand-pink/30"
+          : "border-zinc-800 hover:border-glaze-500/30"
       }`}
     >
       {/* Image - 4:3 aspect ratio for more compact view */}
@@ -69,8 +69,8 @@ function RigCard({ rig, onClick, isSelected, isBumped }: { rig: SubgraphRig; onC
             className="w-full h-full object-cover object-center"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-pink/20 to-zinc-900">
-            <span className="text-brand-pink font-bold text-xl">{rig.symbol?.slice(0, 2) || "?"}</span>
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-glaze-500/20 to-zinc-900">
+            <span className="text-glaze-400 font-bold text-xl">{rig.symbol?.slice(0, 2) || "?"}</span>
           </div>
         )}
       </div>
@@ -80,7 +80,7 @@ function RigCard({ rig, onClick, isSelected, isBumped }: { rig: SubgraphRig; onC
         {/* Name & Ticker */}
         <div className="flex items-center justify-between gap-1">
           <span className="text-[10px] font-bold text-white truncate">{rig.name || "Unknown"}</span>
-          <span className="text-[8px] font-mono text-brand-pink shrink-0">${rig.symbol}</span>
+          <span className="text-[8px] font-mono text-glaze-400 shrink-0">${rig.symbol}</span>
         </div>
 
         {/* Mine Price & Market Cap */}
@@ -187,7 +187,7 @@ export function ExplorePanel({ onSelectRig, selectedRigId }: ExplorePanelProps) 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search rigs..."
-            className="w-full bg-zinc-900 border border-zinc-800 rounded pl-9 pr-3 py-2 text-xs font-mono text-white placeholder:text-zinc-600 focus:outline-none focus:border-brand-pink/50"
+            className="w-full bg-zinc-900 border border-zinc-800 rounded pl-9 pr-3 py-2 text-xs font-mono text-white placeholder:text-zinc-600 focus:outline-none focus:border-glaze-500/50"
           />
         </div>
         <div className="flex gap-1">
@@ -197,7 +197,7 @@ export function ExplorePanel({ onSelectRig, selectedRigId }: ExplorePanelProps) 
               onClick={() => setSortMode(opt.mode)}
               className={`px-2 py-1 text-[10px] font-mono rounded flex items-center gap-1 transition-colors ${
                 sortMode === opt.mode
-                  ? "bg-brand-pink text-white"
+                  ? "bg-glaze-500 text-white"
                   : "bg-zinc-800 text-zinc-400 hover:text-white"
               }`}
             >
@@ -253,7 +253,7 @@ export function ExplorePanel({ onSelectRig, selectedRigId }: ExplorePanelProps) 
                 onClick={() => setPage(p)}
                 className={`min-w-[22px] h-5 text-[10px] font-mono rounded transition-colors ${
                   page === p
-                    ? "bg-brand-pink text-white"
+                    ? "bg-glaze-500 text-white"
                     : "bg-zinc-800 text-zinc-400 hover:text-white"
                 }`}
               >

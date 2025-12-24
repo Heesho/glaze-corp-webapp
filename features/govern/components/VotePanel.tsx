@@ -166,7 +166,7 @@ export function VotePanel({
   return (
     <div className="flex flex-col h-full gap-3 overflow-hidden">
       {/* Voting Power & Status */}
-      <Card variant="cyber" noPadding className="shrink-0">
+      <Card noPadding className="shrink-0">
         <div className="p-3">
           <div className="flex items-center justify-between">
             <div>
@@ -174,10 +174,10 @@ export function VotePanel({
                 Voting Power
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-brand-pink/20 flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-brand-pink">g</span>
+                <div className="w-5 h-5 rounded-full bg-glaze-500/20 flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-glaze-400">g</span>
                 </div>
-                <span className="text-xl font-bold font-mono text-brand-pink">
+                <span className="text-xl font-bold font-mono text-glaze-400">
                   {voterData
                     ? formatTokenAmount(voterData.accountGovernanceTokenBalance, DONUT_DECIMALS)
                     : "-"}
@@ -206,7 +206,7 @@ export function VotePanel({
       {/* Pie Chart & Pending Rewards Row */}
       <div className="grid grid-cols-2 gap-2 shrink-0">
         {/* Pie Chart */}
-        <Card variant="cyber" noPadding>
+        <Card noPadding>
           <div className="p-2">
             <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1 text-center">
               Vote Distribution
@@ -219,7 +219,6 @@ export function VotePanel({
 
         {/* Pending Rewards */}
         <Card
-          variant="cyber"
           noPadding
           className={hasPendingRewards ? "border-emerald-500/30 bg-emerald-500/5" : ""}
         >
@@ -299,7 +298,7 @@ export function VotePanel({
                   : 0;
 
               return (
-                <Card key={bribe.strategy} variant="cyber" noPadding>
+                <Card key={bribe.strategy} noPadding>
                   <div className="p-2">
                     <div className="flex items-center gap-3">
                       {/* Color indicator */}
@@ -314,7 +313,7 @@ export function VotePanel({
                           <span className="text-xs font-bold font-mono text-white truncate">
                             {strategyInfo.action}
                           </span>
-                          <span className="text-sm font-bold font-mono text-brand-pink">
+                          <span className="text-sm font-bold font-mono text-glaze-400">
                             {votePercent.toFixed(1)}%
                           </span>
                         </div>
@@ -336,8 +335,8 @@ export function VotePanel({
                       <div className="shrink-0 text-right w-16">
                         {bribe.accountVote > 0n && (
                           <div className="flex items-center justify-end gap-1 mb-1">
-                            <Check size={10} className="text-brand-pink" />
-                            <span className="text-[9px] font-mono text-brand-pink">
+                            <Check size={10} className="text-glaze-400" />
+                            <span className="text-[9px] font-mono text-glaze-400">
                               {userVotePercent.toFixed(0)}%
                             </span>
                           </div>
@@ -354,7 +353,7 @@ export function VotePanel({
                                 [bribe.strategy]: newWeight,
                               }));
                             }}
-                            className="w-12 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-[10px] font-mono text-white text-center focus:outline-none focus:border-brand-pink"
+                            className="w-12 bg-corp-800 border border-corp-700 rounded px-2 py-1 text-[10px] font-mono text-white text-center focus:outline-none focus:border-glaze-500"
                           />
                         )}
                       </div>

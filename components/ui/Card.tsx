@@ -2,8 +2,6 @@
 
 import React from "react";
 
-type CardVariant = "default" | "cyber";
-
 interface CardProps {
   children: React.ReactNode;
   className?: string;
@@ -11,7 +9,7 @@ interface CardProps {
   icon?: React.ReactNode;
   rightHeader?: React.ReactNode;
   noPadding?: boolean;
-  variant?: CardVariant;
+  size?: "sm" | "default" | "lg";
 }
 
 export function Card({
@@ -21,40 +19,26 @@ export function Card({
   icon,
   rightHeader,
   noPadding = false,
-  variant = "default",
+  size = "default",
 }: CardProps) {
-  const isCyber = variant === "cyber";
+  const paddingClass = noPadding ? "" : size === "sm" ? "p-3" : size === "lg" ? "p-5" : "p-4";
 
   return (
     <div
       className={`
-        relative flex flex-col overflow-hidden transition-all duration-300
-        bg-brand-panel/60 backdrop-blur-md border border-brand-border
-        ${isCyber ? "rounded-sm hover:border-brand-pink/50 hover:shadow-[0_0_20px_rgba(236,72,153,0.1)]" : "rounded-xl"}
+        relative flex flex-col overflow-hidden
+        bg-[#131313] rounded-xl
         ${className}
       `}
     >
-      {/* Cyber Corner Decorators */}
-      {isCyber && (
-        <>
-          <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-brand-pink/50 rounded-tl-sm pointer-events-none z-20" />
-          <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-brand-pink/50 rounded-tr-sm pointer-events-none z-20" />
-          <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-brand-pink/50 rounded-bl-sm pointer-events-none z-20" />
-          <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-brand-pink/50 rounded-br-sm pointer-events-none z-20" />
-        </>
-      )}
-
       {/* Header */}
       {(title || rightHeader) && (
-        <div className="flex items-center justify-between px-3 py-2 shrink-0 z-10 relative border-b border-white/5 bg-black/20">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5">
           <div className="flex items-center gap-2">
-            {icon && <span className="text-brand-pink">{icon}</span>}
+            {icon && <span className="text-glaze-400">{icon}</span>}
             {title && (
-              <span className="text-zinc-400 text-[11px] font-mono uppercase tracking-[0.2em] font-bold flex items-center gap-2">
+              <span className="text-sm font-medium text-corp-300">
                 {title}
-                {isCyber && (
-                  <span className="w-1.5 h-1.5 bg-brand-pink/50 rounded-full animate-pulse" />
-                )}
               </span>
             )}
           </div>
@@ -63,7 +47,7 @@ export function Card({
       )}
 
       {/* Content */}
-      <div className={`flex-1 flex flex-col min-h-0 relative ${noPadding ? "" : "p-5"}`}>
+      <div className={`flex-1 flex flex-col min-h-0 ${paddingClass}`}>
         {children}
       </div>
     </div>

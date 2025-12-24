@@ -387,7 +387,8 @@ export function ipfsToHttp(uri: string): string {
   if (!uri) return "";
   if (uri.startsWith("ipfs://")) {
     const hash = uri.replace("ipfs://", "");
-    const baseUrl = `${PINATA_GATEWAY}/ipfs/${hash}`;
+    const gateway = PINATA_GATEWAY.replace(/\/+$/, ""); // Remove trailing slashes
+    const baseUrl = `${gateway}/ipfs/${hash}`;
     // Add gateway key if available for authenticated access
     if (PINATA_GATEWAY_KEY) {
       return `${baseUrl}?pinataGatewayToken=${PINATA_GATEWAY_KEY}`;

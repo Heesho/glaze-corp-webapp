@@ -11,58 +11,104 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)', 'Inter', 'sans-serif'],
+        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['var(--font-jetbrains-mono)', 'JetBrains Mono', 'monospace'],
       },
       colors: {
-        brand: {
-          pink: '#ec4899',
-          pinkHover: '#be185d',
-          dark: '#050505',
-          panel: '#09090b',
-          border: '#27272a',
-          glass: 'rgba(9, 9, 11, 0.7)',
-          accent: '#db2777',
+        // GlazeCorp Brand Colors
+        // Grayscale foundation with pink accent
+
+        // The Glaze - Primary accent
+        glaze: {
+          50: '#fdf2f8',
+          100: '#fce7f3',
+          200: '#fbcfe8',
+          300: '#f9a8d4',
+          400: '#f472b6',
+          500: '#ec4899', // Primary pink
+          600: '#db2777',
+          700: '#be185d',
+          800: '#9d174d',
+          900: '#831843',
         },
+
+        // Corporate grays
+        corp: {
+          50: '#fafafa',
+          100: '#f4f4f5',
+          200: '#e4e4e7',
+          300: '#d4d4d8',
+          400: '#a1a1aa',
+          500: '#71717a',
+          600: '#52525b',
+          700: '#3f3f46',
+          800: '#27272a',
+          900: '#18181b',
+          950: '#09090b',
+        },
+
+        // Semantic colors
+        background: '#09090b',
+        foreground: '#fafafa',
+        card: {
+          DEFAULT: '#0f0f10',
+          foreground: '#fafafa',
+        },
+        muted: {
+          DEFAULT: '#18181b',
+          foreground: '#a1a1aa',
+        },
+        accent: {
+          DEFAULT: '#ec4899',
+          foreground: '#ffffff',
+        },
+        border: '#27272a',
+        input: '#27272a',
+        ring: '#ec4899',
+
+        // Status
+        destructive: {
+          DEFAULT: '#ef4444',
+          foreground: '#fafafa',
+        },
+        success: {
+          DEFAULT: '#22c55e',
+          foreground: '#fafafa',
+        },
+      },
+      borderRadius: {
+        'sm': '6px',
+        'md': '8px',
+        'lg': '12px',
+        'xl': '16px',
+        '2xl': '20px',
+        '3xl': '24px',
       },
       animation: {
-        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'spin-slow': 'spin 12s linear infinite',
-        glitch: 'glitch 1s linear infinite',
-        shimmer: 'shimmer 2.5s linear infinite',
-        'bump-glow': 'bump-glow 2s ease-out forwards',
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'spin-slow': 'spin 20s linear infinite',
+        'fade-in': 'fadeIn 0.3s ease-out',
+        'slide-up': 'slideUp 0.3s ease-out',
+        'glow': 'glow 2s ease-in-out infinite alternate',
       },
       keyframes: {
-        glitch: {
-          '2%, 64%': { transform: 'translate(2px,0) skew(0deg)' },
-          '4%, 60%': { transform: 'translate(-2px,0) skew(0deg)' },
-          '62%': { transform: 'translate(0,0) skew(5deg)' },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
-        shimmer: {
-          '0%': { backgroundPosition: '0 0' },
-          '100%': { backgroundPosition: '-200% 0' },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
-        'bump-glow': {
-          '0%': {
-            boxShadow: '0 0 20px rgba(52, 211, 153, 0.8), 0 0 40px rgba(52, 211, 153, 0.4)',
-            transform: 'scale(1.02)',
-          },
-          '15%': {
-            boxShadow: '0 0 30px rgba(52, 211, 153, 1), 0 0 60px rgba(52, 211, 153, 0.6)',
-            transform: 'scale(1.03)',
-          },
-          '30%': {
-            boxShadow: '0 0 20px rgba(52, 211, 153, 0.6), 0 0 40px rgba(52, 211, 153, 0.3)',
-            transform: 'scale(1.01)',
-          },
-          '100%': {
-            boxShadow: '0 0 0px rgba(52, 211, 153, 0)',
-            transform: 'scale(1)',
-          },
+        glow: {
+          '0%': { boxShadow: '0 0 20px rgba(236, 72, 153, 0.3)' },
+          '100%': { boxShadow: '0 0 30px rgba(236, 72, 153, 0.5)' },
         },
       },
-      aspectRatio: {
-        '16/7': '16 / 7',
+      boxShadow: {
+        'glow': '0 0 20px rgba(236, 72, 153, 0.3)',
+        'glow-lg': '0 0 40px rgba(236, 72, 153, 0.4)',
+        'inner-glow': 'inset 0 0 20px rgba(236, 72, 153, 0.1)',
       },
     },
   },

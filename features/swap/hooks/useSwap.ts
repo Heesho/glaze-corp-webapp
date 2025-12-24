@@ -13,7 +13,12 @@ import {
   type KyberQuoteResponse,
   type SwapToken,
 } from "@/lib/api/kyber";
-import { TOKEN_ADDRESSES, ERC20_ABI } from "@/lib/blockchain/contracts";
+import {
+  getUniV2Quote,
+  buildUniV2SwapCalldata,
+  type UniV2Quote,
+} from "@/lib/api/uniswapV2";
+import { TOKEN_ADDRESSES, ERC20_ABI, LAUNCHPAD_ADDRESSES } from "@/lib/blockchain/contracts";
 import { getRigs, fetchRigMetadata, ipfsToHttp, type SubgraphRig } from "@/lib/api/launchpad";
 
 // Base tokens with logos
@@ -54,6 +59,7 @@ export function useSwap() {
 
   // Quote state
   const [quote, setQuote] = useState<KyberQuoteResponse | null>(null);
+  const [uniV2Quote, setUniV2Quote] = useState<UniV2Quote | null>(null);
   const [isQuoting, setIsQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
 
@@ -137,11 +143,27 @@ export function useSwap() {
     loadFranchiseTokens();
   }, []);
 
+  // Check if this is a DONUT swap that can use UniV2 as fallback
+  const canUseUniV2 = useMemo(() => {
+    const donutAddr = TOKEN_ADDRESSES.donut.toLowerCase();
+    const tokenInAddr = tokenIn.address.toLowerCase();
+    const tokenOutAddr = tokenOut.address.toLowerCase();
+    const isEthOrWeth = (addr: string) =>
+      addr === NATIVE_ETH_ADDRESS.toLowerCase() ||
+      addr === TOKEN_ADDRESSES.weth.toLowerCase();
+
+    return (
+      (tokenInAddr === donutAddr && isEthOrWeth(tokenOutAddr)) ||
+      (tokenOutAddr === donutAddr && isEthOrWeth(tokenInAddr))
+    );
+  }, [tokenIn.address, tokenOut.address]);
+
   // Debounced quote fetching
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (!inputAmount || parseFloat(inputAmount) <= 0) {
         setQuote(null);
+        setUniV2Quote(null);
         return;
       }
 
@@ -149,25 +171,41 @@ export function useSwap() {
       setQuoteError(null);
 
       try {
-        const amountInWei = BigInt(Math.floor(parseFloat(inputAmount) * Math.pow(10, tokenIn.decimals))).toString();
-        const result = await getKyberQuote(tokenIn.address, tokenOut.address, amountInWei);
+        const amountInWei = BigInt(Math.floor(parseFloat(inputAmount) * Math.pow(10, tokenIn.decimals)));
 
-        if (result?.routeSummary) {
-          setQuote(result);
+        // Always try Kyber first
+        const kyberResult = await getKyberQuote(tokenIn.address, tokenOut.address, amountInWei.toString());
+
+        if (kyberResult?.routeSummary) {
+          setQuote(kyberResult);
+          setUniV2Quote(null);
+        } else if (canUseUniV2) {
+          // Fall back to UniV2 for DONUT swaps if Kyber fails
+          console.log("Kyber failed, trying UniV2 fallback...");
+          const uniResult = await getUniV2Quote(tokenIn.address, tokenOut.address, amountInWei);
+          if (uniResult) {
+            setUniV2Quote(uniResult);
+            setQuote(null);
+          } else {
+            setQuoteError("No route found");
+            setUniV2Quote(null);
+          }
         } else {
           setQuoteError("No route found");
           setQuote(null);
         }
-      } catch {
+      } catch (err) {
+        console.error("Quote error:", err);
         setQuoteError("Failed to get quote");
         setQuote(null);
+        setUniV2Quote(null);
       }
 
       setIsQuoting(false);
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [inputAmount, tokenIn, tokenOut]);
+  }, [inputAmount, tokenIn, tokenOut, canUseUniV2]);
 
   // Format balances
   const formattedBalance = useMemo(() => {
@@ -179,17 +217,29 @@ export function useSwap() {
 
   // Output amount from quote
   const outputAmount = useMemo(() => {
-    if (!quote?.routeSummary) return "";
-    return formatUnits(BigInt(quote.routeSummary.amountOut), tokenOut.decimals);
-  }, [quote, tokenOut]);
+    if (uniV2Quote) {
+      return formatUnits(uniV2Quote.amountOut, tokenOut.decimals);
+    }
+    if (quote?.routeSummary) {
+      return formatUnits(BigInt(quote.routeSummary.amountOut), tokenOut.decimals);
+    }
+    return "";
+  }, [quote, uniV2Quote, tokenOut]);
+
+  // Price impact from UniV2 quote
+  const priceImpact = useMemo(() => {
+    if (uniV2Quote) return uniV2Quote.priceImpact;
+    return 0;
+  }, [uniV2Quote]);
 
   // Check if approval needed
   const needsApproval = useMemo(() => {
     if (tokenIn.address === NATIVE_ETH_ADDRESS) return false;
-    if (!quote || !inputAmount) return false;
+    if (!quote && !uniV2Quote) return false;
+    if (!inputAmount) return false;
     const amountInWei = BigInt(Math.floor(parseFloat(inputAmount) * Math.pow(10, tokenIn.decimals)));
     return (allowance as bigint || 0n) < amountInWei;
-  }, [tokenIn, quote, inputAmount, allowance]);
+  }, [tokenIn, quote, uniV2Quote, inputAmount, allowance]);
 
   // Flip tokens
   const handleFlip = useCallback(() => {
@@ -198,6 +248,7 @@ export function useSwap() {
     setTokenOut(temp);
     setInputAmount("");
     setQuote(null);
+    setUniV2Quote(null);
   }, [tokenIn, tokenOut]);
 
   // Set max amount
@@ -213,7 +264,7 @@ export function useSwap() {
 
   // Approve token
   const handleApprove = useCallback(async () => {
-    if (!quote || !userAddress) return;
+    if ((!quote && !uniV2Quote) || !userAddress) return;
 
     setSwapStep("approving");
     setSwapError(null);
@@ -221,10 +272,15 @@ export function useSwap() {
     try {
       const amountInWei = BigInt(Math.floor(parseFloat(inputAmount) * Math.pow(10, tokenIn.decimals)));
 
+      // Use UniV2 router for DONUT swaps, Kyber router otherwise
+      const spender = uniV2Quote
+        ? LAUNCHPAD_ADDRESSES.uniV2Router
+        : (quote?.routerAddress ?? "");
+
       sendTransaction(
         {
           to: tokenIn.address as Address,
-          data: `0x095ea7b3${quote.routerAddress.slice(2).padStart(64, "0")}${amountInWei.toString(16).padStart(64, "0")}` as `0x${string}`,
+          data: `0x095ea7b3${spender.slice(2).padStart(64, "0")}${amountInWei.toString(16).padStart(64, "0")}` as `0x${string}`,
           chainId: base.id,
         },
         {
@@ -244,16 +300,54 @@ export function useSwap() {
       setSwapStep("idle");
       setSwapError("Approval failed");
     }
-  }, [quote, userAddress, inputAmount, tokenIn, sendTransaction, refetchAllowance]);
+  }, [quote, uniV2Quote, userAddress, inputAmount, tokenIn, sendTransaction, refetchAllowance]);
 
   // Execute swap
   const handleSwap = useCallback(async () => {
-    if (!quote || !userAddress) return;
+    if ((!quote && !uniV2Quote) || !userAddress) return;
 
     setSwapStep("swapping");
     setSwapError(null);
 
     try {
+      // Handle UniV2 swaps for DONUT
+      if (uniV2Quote) {
+        const isEthIn = tokenIn.address === NATIVE_ETH_ADDRESS;
+        const swapData = buildUniV2SwapCalldata(
+          uniV2Quote,
+          userAddress as Address,
+          100, // 1% slippage
+          isEthIn
+        );
+
+        sendTransaction(
+          {
+            to: swapData.to,
+            data: swapData.data,
+            value: swapData.value,
+            chainId: base.id,
+          },
+          {
+            onSuccess: () => {
+              setSwapStep("confirming");
+            },
+            onError: (error) => {
+              console.error("Swap error:", error);
+              setSwapStep("idle");
+              setSwapError("Swap failed");
+            },
+          }
+        );
+        return;
+      }
+
+      // Handle Kyber swaps for other tokens
+      if (!quote?.routeSummary || !quote?.routerAddress) {
+        setSwapStep("idle");
+        setSwapError("Invalid quote");
+        return;
+      }
+
       const buildResult = await buildKyberSwap(
         quote.routeSummary,
         quote.routerAddress,
@@ -295,7 +389,7 @@ export function useSwap() {
       setSwapStep("idle");
       setSwapError("Swap failed");
     }
-  }, [quote, userAddress, tokenIn, sendTransaction]);
+  }, [quote, uniV2Quote, userAddress, tokenIn, sendTransaction]);
 
   // Handle confirmation
   useEffect(() => {
@@ -303,11 +397,15 @@ export function useSwap() {
       setSwapStep("idle");
       setInputAmount("");
       setQuote(null);
+      setUniV2Quote(null);
       refetchTokenBalance();
     }
   }, [isSuccess, swapStep, refetchTokenBalance]);
 
   const isBusy = swapStep !== "idle" || isSending || isConfirming;
+
+  // Has any quote (Kyber or UniV2)
+  const hasQuote = !!(quote || uniV2Quote);
 
   return {
     // Tokens
@@ -327,8 +425,11 @@ export function useSwap() {
 
     // Quote
     quote,
+    uniV2Quote,
+    hasQuote,
     isQuoting,
     quoteError,
+    priceImpact,
 
     // Swap
     swapStep,

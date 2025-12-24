@@ -103,7 +103,7 @@ export function StakePanel({
     <div className="flex flex-col h-full gap-3 overflow-hidden">
       {/* Balance Cards */}
       <div className="grid grid-cols-2 gap-2 shrink-0">
-        <Card variant="cyber" noPadding>
+        <Card noPadding>
           <div className="p-3">
             <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
               DONUT Balance
@@ -117,14 +117,14 @@ export function StakePanel({
             <div className="text-[9px] font-mono text-zinc-600">Available to stake</div>
           </div>
         </Card>
-        <Card variant="cyber" noPadding>
+        <Card noPadding>
           <div className="p-3">
             <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
               gDONUT Balance
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-brand-pink/20 flex items-center justify-center">
-                <span className="text-[10px] font-bold text-brand-pink">g</span>
+              <div className="w-5 h-5 rounded-full bg-glaze-500/20 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-glaze-400">g</span>
               </div>
               <span className="text-lg font-bold font-mono text-white">
                 {voterData ? formatTokenAmount(voterData.accountGovernanceTokenBalance, DONUT_DECIMALS) : "-"}
@@ -142,10 +142,10 @@ export function StakePanel({
             setMode("stake");
             setAmount("");
           }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold font-mono rounded transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg transition-all ${
             mode === "stake"
-              ? "bg-brand-pink text-white"
-              : "bg-zinc-800 text-zinc-400 hover:text-white"
+              ? "bg-glaze-500 text-white"
+              : "bg-corp-800 text-corp-400 hover:text-corp-50"
           }`}
         >
           <Lock size={14} />
@@ -156,10 +156,10 @@ export function StakePanel({
             setMode("unstake");
             setAmount("");
           }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold font-mono rounded transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg transition-all ${
             mode === "unstake"
-              ? "bg-brand-pink text-white"
-              : "bg-zinc-800 text-zinc-400 hover:text-white"
+              ? "bg-glaze-500 text-white"
+              : "bg-corp-800 text-corp-400 hover:text-corp-50"
           }`}
         >
           <Unlock size={14} />
@@ -168,7 +168,7 @@ export function StakePanel({
       </div>
 
       {/* Amount Input */}
-      <Card variant="cyber" noPadding className="shrink-0">
+      <Card noPadding className="shrink-0">
         <div className="p-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
@@ -176,7 +176,7 @@ export function StakePanel({
             </span>
             <button
               onClick={setMaxAmount}
-              className="text-[10px] font-mono text-brand-pink hover:text-brand-pinkHover"
+              className="text-[10px] font-mono text-glaze-400 hover:text-glaze-300"
             >
               MAX
             </button>

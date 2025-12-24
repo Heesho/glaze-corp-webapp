@@ -2,7 +2,33 @@
 const KYBER_API_BASE = "https://aggregator-api.kyberswap.com/base";
 
 export interface KyberQuoteResponse {
-  routeSummary: {
+  code: number;
+  message?: string;
+  data?: {
+    routeSummary: {
+      tokenIn: string;
+      amountIn: string;
+      amountInUsd: string;
+      tokenOut: string;
+      amountOut: string;
+      amountOutUsd: string;
+      gas: string;
+      gasPrice: string;
+      gasUsd: string;
+      route: Array<Array<{
+        pool: string;
+        tokenIn: string;
+        tokenOut: string;
+        swapAmount: string;
+        amountOut: string;
+        exchange: string;
+      }>>;
+      routeID: string;
+    };
+    routerAddress: string;
+  };
+  // Legacy format compatibility
+  routeSummary?: {
     tokenIn: string;
     amountIn: string;
     tokenOut: string;
@@ -11,11 +37,13 @@ export interface KyberQuoteResponse {
     gas: string;
     gasUsd: string;
   };
-  routerAddress: string;
+  routerAddress?: string;
 }
 
 export interface KyberBuildRouteResponse {
-  data: {
+  code: number;
+  message?: string;
+  data?: {
     amountIn: string;
     amountOut: string;
     routerAddress: string;
@@ -46,22 +74,40 @@ export async function getKyberQuote(
       tokenIn,
       tokenOut,
       amountIn,
-      saveGas: "false",
       gasInclude: "true",
+    });
+
+    console.log("Kyber quote request:", {
+      url: `${KYBER_API_BASE}/api/v1/routes?${params}`,
+      tokenIn,
+      tokenOut,
+      amountIn,
     });
 
     const res = await fetch(`${KYBER_API_BASE}/api/v1/routes?${params}`, {
       headers: {
-        "x-client-id": "glazecorp",
+        "X-Client-Id": "glazecorp",
       },
     });
 
-    if (!res.ok) {
-      console.error("Kyber quote error:", res.status, await res.text());
+    const data = await res.json();
+    console.log("Kyber quote response:", data);
+
+    // Check for error codes in response body
+    if (data.code && data.code !== 0) {
+      console.error("Kyber API error:", data.code, data.message);
       return null;
     }
 
-    const data = await res.json();
+    // Handle both nested and flat response formats
+    if (data.data?.routeSummary) {
+      return {
+        ...data,
+        routeSummary: data.data.routeSummary,
+        routerAddress: data.data.routerAddress,
+      };
+    }
+
     return data;
   } catch (error) {
     console.error("Kyber quote error:", error);
@@ -78,11 +124,13 @@ export async function buildKyberSwap(
   slippageBps = 100 // 1% default
 ): Promise<KyberBuildRouteResponse | null> {
   try {
+    console.log("Kyber build request:", { routeSummary, sender, recipient, slippageBps });
+
     const res = await fetch(`${KYBER_API_BASE}/api/v1/route/build`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-client-id": "glazecorp",
+        "X-Client-Id": "glazecorp",
       },
       body: JSON.stringify({
         routeSummary,
@@ -92,12 +140,15 @@ export async function buildKyberSwap(
       }),
     });
 
-    if (!res.ok) {
-      console.error("Kyber build error:", res.status, await res.text());
+    const data = await res.json();
+    console.log("Kyber build response:", data);
+
+    // Check for error codes in response body
+    if (data.code && data.code !== 0) {
+      console.error("Kyber build API error:", data.code, data.message);
       return null;
     }
 
-    const data = await res.json();
     return data;
   } catch (error) {
     console.error("Kyber build error:", error);
