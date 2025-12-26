@@ -4,14 +4,14 @@ import Link from "next/link";
 import { BarChart3, BookOpen, FileText, Wallet, Users, MessageCircle } from "lucide-react";
 
 // X (Twitter) icon
-const XIcon = ({ size = 14 }: { size?: number }) => (
+const XIcon = ({ size = 14 }: { size?: number | string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
   </svg>
 );
 
 // Farcaster icon
-const FarcasterIcon = ({ size = 14 }: { size?: number }) => (
+const FarcasterIcon = ({ size = 14 }: { size?: number | string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
     <path d="M3 3h18v18H3V3zm15.5 4.5h-13V8l1.5 1v7.5h3V11h4v5.5h3V9l1.5-1V7.5z" />
   </svg>
@@ -20,7 +20,7 @@ const FarcasterIcon = ({ size = 14 }: { size?: number }) => (
 type FooterLink = {
   label: string;
   href: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: React.ComponentType<{ size?: number | string }>;
   disabled?: boolean;
 };
 
