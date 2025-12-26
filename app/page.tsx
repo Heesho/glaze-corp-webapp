@@ -64,7 +64,7 @@ export default function LandingPage() {
           <div className="flex justify-center mb-10">
             <div className="relative">
               <div className="absolute inset-0 blur-[60px] bg-glaze-500/30 scale-[2]" />
-              <DonutLogo size={120} className="relative" />
+              <DonutLogo className="w-28 h-28 relative" />
             </div>
           </div>
 
