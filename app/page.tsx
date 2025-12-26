@@ -80,8 +80,7 @@ export default function LandingPage() {
 
           {/* Description */}
           <p className="text-base text-zinc-500 max-w-xl mx-auto leading-relaxed">
-            The world&apos;s leading automated confectionery conglomerate.
-            Primary contributor to <span className="text-zinc-400">DonutDAO</span>.
+            The world&apos;s leading contributor to <span className="text-zinc-400">DonutDAO</span>.
           </p>
         </div>
       </section>
