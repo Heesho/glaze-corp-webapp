@@ -31,6 +31,8 @@ export interface SubgraphEpoch {
   mined: string;
   startTime: string;
   uri: string;
+  initPrice: string;
+  account?: string;
   rig: {
     id: string;
     name: string; // mapped from tokenName
@@ -126,6 +128,12 @@ const GET_RECENT_EPOCHS_QUERY = `
       mined
       startTime
       uri
+      initPrice
+      rigAccount {
+        account {
+          id
+        }
+      }
       rig {
         id
         tokenName
@@ -174,6 +182,30 @@ const GET_USER_RIG_ACCOUNTS_QUERY = `
   }
 `;
 
+const GET_RIG_EPOCHS_QUERY = `
+  query GetRigEpochs($rigId: String!, $first: Int!) {
+    epoches(where: { rig: $rigId }, first: $first, orderBy: startTime, orderDirection: desc) {
+      id
+      spent
+      earned
+      mined
+      startTime
+      uri
+      initPrice
+      rigAccount {
+        account {
+          id
+        }
+      }
+      rig {
+        id
+        tokenName
+        tokenSymbol
+      }
+    }
+  }
+`;
+
 // Raw types from subgraph
 interface RawRig {
   id: string;
@@ -202,6 +234,12 @@ interface RawEpoch {
   mined: string;
   startTime: string;
   uri: string;
+  initPrice: string;
+  rigAccount?: {
+    account: {
+      id: string;
+    };
+  };
   rig: {
     id: string;
     tokenName: string;
@@ -259,6 +297,8 @@ function transformEpoch(raw: RawEpoch): SubgraphEpoch {
     mined: raw.mined,
     startTime: raw.startTime,
     uri: raw.uri,
+    initPrice: raw.initPrice || "0",
+    account: raw.rigAccount?.account?.id,
     rig: {
       id: raw.rig.id,
       name: raw.rig.tokenName,
@@ -348,6 +388,14 @@ export async function getRig(id: string): Promise<SubgraphRig | null> {
 
 export async function getRecentEpochs(first = 20): Promise<SubgraphEpoch[]> {
   const data = await querySubgraph<{ epoches: RawEpoch[] }>(GET_RECENT_EPOCHS_QUERY, { first });
+  return data?.epoches?.map(transformEpoch) ?? [];
+}
+
+export async function getRigEpochs(rigId: string, first = 20): Promise<SubgraphEpoch[]> {
+  const data = await querySubgraph<{ epoches: RawEpoch[] }>(GET_RIG_EPOCHS_QUERY, {
+    rigId: rigId.toLowerCase(),
+    first
+  });
   return data?.epoches?.map(transformEpoch) ?? [];
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { base } from "wagmi/chains";
 import { type Address, zeroAddress } from "viem";
 
@@ -46,6 +46,7 @@ export function useAuctions(userAddress?: Address) {
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyAuctionData | null>(null);
   const [buyStep, setBuyStep] = useState<BuyStep>("idle");
   const [buyResult, setBuyResult] = useState<"success" | "failure" | null>(null);
+  const [pendingBuy, setPendingBuy] = useState<{ strategy: StrategyAuctionData; amount: bigint } | null>(null);
 
   // Clear result after delay
   useEffect(() => {
@@ -73,6 +74,46 @@ export function useAuctions(userAddress?: Address) {
     return (rawStrategiesData as unknown as StrategyAuctionData[]).filter((s) => s.isAlive);
   }, [rawStrategiesData]);
 
+  // Get unique payment tokens
+  const uniquePaymentTokens = useMemo(() => {
+    const tokens = new Set<Address>();
+    strategies.forEach((s) => tokens.add(s.paymentToken));
+    return Array.from(tokens);
+  }, [strategies]);
+
+  // Fetch allowances for all unique payment tokens
+  const allowanceContracts = useMemo(() => {
+    if (!userAddress) return [];
+    return uniquePaymentTokens.map((token) => ({
+      address: token,
+      abi: ERC20_ABI,
+      functionName: "allowance" as const,
+      args: [userAddress, LSG_ADDRESSES.lsgMulticall as Address] as const,
+      chainId: base.id,
+    }));
+  }, [userAddress, uniquePaymentTokens]);
+
+  const { data: allowancesData, refetch: refetchAllowances } = useReadContracts({
+    contracts: allowanceContracts,
+    query: {
+      enabled: allowanceContracts.length > 0,
+    },
+  });
+
+  // Map allowances by payment token
+  const allowancesByToken = useMemo(() => {
+    const map = new Map<string, bigint>();
+    if (allowancesData) {
+      uniquePaymentTokens.forEach((token, i) => {
+        const result = allowancesData[i]?.result;
+        if (result !== undefined) {
+          map.set(token.toLowerCase(), result as bigint);
+        }
+      });
+    }
+    return map;
+  }, [allowancesData, uniquePaymentTokens]);
+
   // Auto-select first strategy
   useEffect(() => {
     if (!selectedStrategy && strategies.length > 0) {
@@ -91,20 +132,6 @@ export function useAuctions(userAddress?: Address) {
       }
     }
   }, [strategies, selectedStrategy]);
-
-  // Check allowance for payment token
-  const { data: paymentTokenAllowance, refetch: refetchAllowance } = useReadContract({
-    address: selectedStrategy?.paymentToken as Address,
-    abi: ERC20_ABI,
-    functionName: "allowance",
-    args: userAddress && selectedStrategy
-      ? [userAddress, LSG_ADDRESSES.lsgMulticall as Address]
-      : undefined,
-    chainId: base.id,
-    query: {
-      enabled: !!userAddress && !!selectedStrategy,
-    },
-  });
 
   // Write hooks
   const {
@@ -132,19 +159,41 @@ export function useAuctions(userAddress?: Address) {
     chainId: base.id,
   });
 
-  // Handle approve completion
+  // Handle approve completion - trigger pending buy if exists
   useEffect(() => {
     if (approveReceipt?.status === "success") {
-      setBuyStep("idle");
       resetApprove();
-      refetchAllowance();
+      refetchAllowances();
       refetchStrategies();
+      // If there's a pending buy, trigger it
+      if (pendingBuy) {
+        setBuyStep("buying");
+        const { strategy, amount } = pendingBuy;
+        setPendingBuy(null);
+        const deadline = BigInt(Math.floor(Date.now() / 1000) + 900);
+        try {
+          writeBuy({
+            account: userAddress!,
+            address: LSG_ADDRESSES.lsgMulticall as Address,
+            abi: LSG_MULTICALL_ABI,
+            functionName: "distributeAndBuy",
+            args: [strategy.strategy, strategy.epochId, deadline, amount],
+            chainId: base.id,
+          });
+        } catch {
+          setBuyResult("failure");
+          setBuyStep("idle");
+        }
+      } else {
+        setBuyStep("idle");
+      }
     } else if (approveReceipt?.status === "reverted") {
       setBuyResult("failure");
       setBuyStep("idle");
+      setPendingBuy(null);
       resetApprove();
     }
-  }, [approveReceipt, resetApprove, refetchAllowance, refetchStrategies]);
+  }, [approveReceipt, resetApprove, refetchAllowances, refetchStrategies, pendingBuy, userAddress, writeBuy]);
 
   // Handle buy completion
   useEffect(() => {
@@ -160,34 +209,45 @@ export function useAuctions(userAddress?: Address) {
     }
   }, [buyReceipt, resetBuy, refetchStrategies]);
 
-  // Approve payment tokens
-  const handleApprove = useCallback(async () => {
-    if (!userAddress || !selectedStrategy) return;
-    setBuyStep("approving");
-    try {
-      await writeApprove({
-        account: userAddress,
-        address: selectedStrategy.paymentToken,
-        abi: ERC20_ABI,
-        functionName: "approve",
-        args: [
-          LSG_ADDRESSES.lsgMulticall as Address,
-          BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
-        ],
-        chainId: base.id,
-      });
-    } catch (error) {
-      console.error("Approve failed:", error);
-      setBuyResult("failure");
-      setBuyStep("idle");
-    }
-  }, [userAddress, selectedStrategy, writeApprove]);
+  // Approve payment tokens for a specific strategy
+  const handleApproveForStrategy = useCallback(
+    async (strategy: StrategyAuctionData) => {
+      if (!userAddress) return;
+      setBuyStep("approving");
+      setSelectedStrategy(strategy);
+      try {
+        await writeApprove({
+          account: userAddress,
+          address: strategy.paymentToken,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [
+            LSG_ADDRESSES.lsgMulticall as Address,
+            BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+          ],
+          chainId: base.id,
+        });
+      } catch (error) {
+        console.error("Approve failed:", error);
+        setBuyResult("failure");
+        setBuyStep("idle");
+      }
+    },
+    [userAddress, writeApprove]
+  );
 
-  // Buy from auction (distributeAndBuy)
-  const handleBuy = useCallback(
-    async (maxPaymentAmount: bigint) => {
-      if (!userAddress || !selectedStrategy) return;
+  // Legacy approve (uses selectedStrategy)
+  const handleApprove = useCallback(async () => {
+    if (!selectedStrategy) return;
+    await handleApproveForStrategy(selectedStrategy);
+  }, [selectedStrategy, handleApproveForStrategy]);
+
+  // Buy from auction for a specific strategy
+  const handleBuyForStrategy = useCallback(
+    async (strategy: StrategyAuctionData, maxPaymentAmount: bigint) => {
+      if (!userAddress) return;
       setBuyStep("buying");
+      setSelectedStrategy(strategy);
       try {
         const deadline = BigInt(Math.floor(Date.now() / 1000) + 900); // 15 min
 
@@ -197,8 +257,8 @@ export function useAuctions(userAddress?: Address) {
           abi: LSG_MULTICALL_ABI,
           functionName: "distributeAndBuy",
           args: [
-            selectedStrategy.strategy,
-            selectedStrategy.epochId,
+            strategy.strategy,
+            strategy.epochId,
             deadline,
             maxPaymentAmount,
           ],
@@ -210,16 +270,64 @@ export function useAuctions(userAddress?: Address) {
         setBuyStep("idle");
       }
     },
-    [userAddress, selectedStrategy, writeBuy]
+    [userAddress, writeBuy]
   );
 
-  // Check if needs approval
+  // Legacy buy (uses selectedStrategy)
+  const handleBuy = useCallback(
+    async (maxPaymentAmount: bigint) => {
+      if (!selectedStrategy) return;
+      await handleBuyForStrategy(selectedStrategy, maxPaymentAmount);
+    },
+    [selectedStrategy, handleBuyForStrategy]
+  );
+
+  // Approve and buy in sequence - sets pending buy then triggers approve
+  const handleApproveAndBuy = useCallback(
+    async (strategy: StrategyAuctionData, amount: bigint) => {
+      if (!userAddress) return;
+      setPendingBuy({ strategy, amount });
+      setBuyStep("approving");
+      setSelectedStrategy(strategy);
+      try {
+        await writeApprove({
+          account: userAddress,
+          address: strategy.paymentToken,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [
+            LSG_ADDRESSES.lsgMulticall as Address,
+            BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+          ],
+          chainId: base.id,
+        });
+      } catch (error) {
+        console.error("Approve failed:", error);
+        setBuyResult("failure");
+        setBuyStep("idle");
+        setPendingBuy(null);
+      }
+    },
+    [userAddress, writeApprove]
+  );
+
+  // Check if needs approval for a specific payment token
+  const needsApprovalForToken = useCallback(
+    (paymentToken: Address, amount: bigint) => {
+      const allowance = allowancesByToken.get(paymentToken.toLowerCase());
+      if (allowance === undefined) return true;
+      return allowance < amount;
+    },
+    [allowancesByToken]
+  );
+
+  // Legacy needsApproval (uses selectedStrategy)
   const needsApproval = useCallback(
     (amount: bigint) => {
-      if (!paymentTokenAllowance) return true;
-      return (paymentTokenAllowance as bigint) < amount;
+      if (!selectedStrategy) return true;
+      return needsApprovalForToken(selectedStrategy.paymentToken, amount);
     },
-    [paymentTokenAllowance]
+    [selectedStrategy, needsApprovalForToken]
   );
 
   const isBusy =
@@ -243,10 +351,14 @@ export function useAuctions(userAddress?: Address) {
     buyResult,
     isBusy,
     needsApproval,
+    needsApprovalForToken,
     handleApprove,
+    handleApproveForStrategy,
+    handleApproveAndBuy,
     handleBuy,
+    handleBuyForStrategy,
     refetchStrategies,
     getPaymentTokenSymbol,
-    paymentTokenAllowance: paymentTokenAllowance as bigint | undefined,
+    allowancesByToken,
   };
 }

@@ -23,6 +23,7 @@ export function useStaking(
 ) {
   const [txStep, setTxStep] = useState<TxStep>("idle");
   const [txResult, setTxResult] = useState<"success" | "failure" | null>(null);
+  const [pendingStake, setPendingStake] = useState<string | null>(null);
 
   // Clear result after delay
   useEffect(() => {
@@ -85,15 +86,37 @@ export function useStaking(
   // Handle tx completions
   useEffect(() => {
     if (approveReceipt?.status === "success") {
-      setTxStep("idle");
       resetApprove();
       onSuccess?.();
+      // If there's a pending stake, trigger it
+      if (pendingStake) {
+        setTxStep("staking");
+        const amount = pendingStake;
+        setPendingStake(null);
+        const parsedAmount = parseUnits(amount, DONUT_DECIMALS);
+        try {
+          writeStake({
+            account: userAddress!,
+            address: LSG_ADDRESSES.governanceToken as Address,
+            abi: GOVERNANCE_TOKEN_ABI,
+            functionName: "stake",
+            args: [parsedAmount],
+            chainId: base.id,
+          });
+        } catch {
+          setTxResult("failure");
+          setTxStep("idle");
+        }
+      } else {
+        setTxStep("idle");
+      }
     } else if (approveReceipt?.status === "reverted") {
       setTxResult("failure");
       setTxStep("idle");
+      setPendingStake(null);
       resetApprove();
     }
-  }, [approveReceipt, resetApprove, onSuccess]);
+  }, [approveReceipt, resetApprove, onSuccess, pendingStake, userAddress, writeStake]);
 
   useEffect(() => {
     if (stakeReceipt?.status === "success") {
@@ -137,10 +160,13 @@ export function useStaking(
   // Check if needs approval
   const needsApproval = useCallback(
     (amount: string) => {
-      if (!donutAllowance || !amount) return false;
+      if (!amount) return false;
       try {
         const parsedAmount = parseUnits(amount, DONUT_DECIMALS);
-        return donutAllowance < parsedAmount;
+        if (parsedAmount === 0n) return false;
+        // If no allowance or allowance is less than amount, needs approval
+        const currentAllowance = donutAllowance ?? 0n;
+        return currentAllowance < parsedAmount;
       } catch {
         return false;
       }
@@ -194,6 +220,32 @@ export function useStaking(
       }
     },
     [userAddress, writeStake]
+  );
+
+  // Handle approve and stake in sequence
+  const handleApproveAndStake = useCallback(
+    async (amount: string) => {
+      if (!userAddress || !amount) return;
+      setPendingStake(amount);
+      setTxStep("approving");
+      try {
+        const parsedAmount = parseUnits(amount, DONUT_DECIMALS);
+        await writeApprove({
+          account: userAddress,
+          address: TOKEN_ADDRESSES.donut as Address,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [LSG_ADDRESSES.governanceToken as Address, parsedAmount * 2n],
+          chainId: base.id,
+        });
+      } catch (error) {
+        console.error("Approve failed:", error);
+        setTxResult("failure");
+        setTxStep("idle");
+        setPendingStake(null);
+      }
+    },
+    [userAddress, writeApprove]
   );
 
   // Handle unstake
@@ -281,6 +333,7 @@ export function useStaking(
     needsApproval,
     handleApprove,
     handleStake,
+    handleApproveAndStake,
     handleUnstake,
     handleDelegate,
     handleResetVotes,

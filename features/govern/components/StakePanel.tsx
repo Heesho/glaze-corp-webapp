@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { formatUnits, formatEther, type Address } from "viem";
 import { Lock, Unlock, RotateCcw, Clock } from "lucide-react";
 
-import { Card, Button, DonutLogo } from "@/components/ui";
+import { Card, Button, DonutLogo, GDonutLogo } from "@/components/ui";
 import { DONUT_DECIMALS } from "@/config/constants";
 import { useStaking } from "../hooks/useStaking";
 import { formatTimeUntilNextEpoch, canVoteThisEpoch, type VoterData } from "../hooks/useGovernData";
@@ -41,8 +41,8 @@ export function StakePanel({
     txResult,
     isBusy,
     needsApproval,
-    handleApprove,
     handleStake,
+    handleApproveAndStake,
     handleUnstake,
     handleResetVotes,
   } = useStaking(userAddress, donutAllowance, onSuccess);
@@ -79,7 +79,7 @@ export function StakePanel({
   const handleAction = () => {
     if (mode === "stake") {
       if (needsApproval(amount)) {
-        handleApprove(amount);
+        handleApproveAndStake(amount);
       } else {
         handleStake(amount);
       }
@@ -94,9 +94,8 @@ export function StakePanel({
     if (txStep === "approving") return "APPROVING...";
     if (txStep === "staking") return "STAKING...";
     if (txStep === "unstaking") return "UNSTAKING...";
-    if (mode === "stake" && needsApproval(amount)) return "APPROVE DONUT";
-    if (mode === "stake") return "STAKE DONUT";
-    return "UNSTAKE gDONUT";
+    if (mode === "stake") return "STAKE";
+    return "UNSTAKE";
   };
 
   return (
@@ -114,7 +113,6 @@ export function StakePanel({
                 {voterData ? formatTokenAmount(voterData.accountUnderlyingTokenBalance, DONUT_DECIMALS) : "-"}
               </span>
             </div>
-            <div className="text-[9px] font-mono text-zinc-600">Available to stake</div>
           </div>
         </Card>
         <Card noPadding>
@@ -123,14 +121,11 @@ export function StakePanel({
               gDONUT Balance
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-glaze-500/20 flex items-center justify-center">
-                <span className="text-[10px] font-bold text-glaze-400">g</span>
-              </div>
+              <GDonutLogo className="w-5 h-5" />
               <span className="text-lg font-bold font-mono text-white">
                 {voterData ? formatTokenAmount(voterData.accountGovernanceTokenBalance, DONUT_DECIMALS) : "-"}
               </span>
             </div>
-            <div className="text-[9px] font-mono text-zinc-600">Voting power</div>
           </div>
         </Card>
       </div>
@@ -172,13 +167,20 @@ export function StakePanel({
         <div className="p-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-              {mode === "stake" ? "Amount to stake" : "Amount to unstake"}
+              {mode === "stake" ? "Stake" : "Unstake"}
             </span>
             <button
               onClick={setMaxAmount}
               className="text-[10px] font-mono text-glaze-400 hover:text-glaze-300"
             >
-              MAX
+              {voterData
+                ? formatTokenAmount(
+                    mode === "stake"
+                      ? voterData.accountUnderlyingTokenBalance
+                      : voterData.accountGovernanceTokenBalance,
+                    DONUT_DECIMALS
+                  )
+                : "0"}
             </button>
           </div>
           <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded px-3 py-2">
@@ -198,34 +200,6 @@ export function StakePanel({
         </div>
       </Card>
 
-      {/* Active Votes Warning */}
-      {mode === "unstake" && hasActiveVotes && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded p-3 shrink-0">
-          <div className="text-[10px] text-red-400 text-center mb-2 font-mono">
-            Reset votes before unstaking
-          </div>
-          {canReset ? (
-            <Button
-              variant="secondary"
-              fullWidth
-              onClick={handleResetVotes}
-              disabled={isBusy}
-              className="!py-2 !text-xs"
-            >
-              <RotateCcw size={12} className="mr-2" />
-              {txStep === "resetting" ? "RESETTING..." : "RESET VOTES"}
-            </Button>
-          ) : (
-            <div className="flex items-center justify-center gap-2 text-yellow-400">
-              <Clock size={12} />
-              <span className="text-[10px] font-mono">
-                {voterData ? formatTimeUntilNextEpoch(voterData.accountLastVoted) : "-"}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
       {insufficientBalance && parsedAmount > 0n && (
         <div className="bg-red-500/10 border border-red-500/30 rounded p-2 text-center shrink-0">
           <div className="text-[10px] text-red-400 font-mono">
@@ -235,21 +209,28 @@ export function StakePanel({
       )}
 
       {/* Action Button */}
-      <Button
-        variant="primary"
-        fullWidth
-        onClick={handleAction}
-        disabled={isBusy || parsedAmount === 0n || insufficientBalance || (mode === "unstake" && !canUnstake)}
-        className={`shrink-0 !py-3 ${
-          txResult === "success"
-            ? "!bg-emerald-500"
-            : txResult === "failure"
-            ? "!bg-red-500"
-            : ""
-        }`}
-      >
-        {getButtonText()}
-      </Button>
+      {mode === "unstake" && hasActiveVotes ? (
+        <Button
+          variant="primary"
+          fullWidth
+          onClick={handleResetVotes}
+          disabled={isBusy || !canReset}
+          className="shrink-0 !py-3"
+        >
+          <RotateCcw size={14} className="mr-2" />
+          {txStep === "resetting" ? "RESETTING..." : canReset ? "RESET" : `RESET IN ${voterData ? formatTimeUntilNextEpoch(voterData.accountLastVoted) : "-"}`}
+        </Button>
+      ) : (
+        <Button
+          variant="primary"
+          fullWidth
+          onClick={handleAction}
+          disabled={isBusy || parsedAmount === 0n || insufficientBalance}
+          className="shrink-0 !py-3"
+        >
+          {getButtonText()}
+        </Button>
+      )}
     </div>
   );
 }

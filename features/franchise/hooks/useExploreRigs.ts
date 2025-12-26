@@ -15,7 +15,7 @@ import { POLLING_INTERVAL_MS } from "@/config/constants";
 
 export type SortMode = "new" | "top" | "bump";
 
-const PAGE_SIZE = 12; // 4x3 grid
+const PAGE_SIZE = 20; // 5x4 grid on desktop, fills mobile grids too
 
 export function useExploreRigs() {
   const [rigs, setRigs] = useState<SubgraphRig[]>([]);

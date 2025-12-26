@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -30,17 +32,21 @@ export default function RootLayout({
           ${inter.variable}
           ${jetbrainsMono.variable}
           font-sans
-          bg-[#020202]
+          bg-[#131313]
           text-zinc-300
           antialiased
-          h-screen
-          w-screen
-          overflow-hidden
         `}
       >
-        {/* Main App Container */}
         <Providers>
-          {children}
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <main className="px-3 lg:px-4 relative z-10 pb-20 md:pb-3 pt-14 flex-1 min-h-[calc(100vh+100px)]">
+              {children}
+            </main>
+            <div className="hidden md:block">
+              <Footer />
+            </div>
+          </div>
         </Providers>
       </body>
     </html>

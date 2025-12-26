@@ -1,15 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Search, TrendingUp, Clock, Flame, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { TrendingUp, Clock, Flame, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { useExploreRigs, type SortMode } from "../hooks/useExploreRigs";
 import { type SubgraphRig, ipfsToHttp, fetchRigMetadata, calculateCurrentPrice } from "@/lib/api/launchpad";
-
-interface ExplorePanelProps {
-  onSelectRig?: (rig: SubgraphRig) => void;
-  selectedRigId?: string;
-}
+import { Button } from "@/components/ui/Button";
+import { SearchInput } from "@/components/ui/Input";
 
 // Subgraph returns values as formatted decimals, not wei
 const formatNumber = (value: string) => {
@@ -24,7 +22,7 @@ const formatEth = (value: string) => {
   return num.toFixed(3);
 };
 
-function RigCard({ rig, onClick, isSelected, isBumped }: { rig: SubgraphRig; onClick?: () => void; isSelected?: boolean; isBumped?: boolean }) {
+function RigCard({ rig, isBumped }: { rig: SubgraphRig; isBumped?: boolean }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [currentPrice, setCurrentPrice] = useState(0);
 
@@ -46,22 +44,21 @@ function RigCard({ rig, onClick, isSelected, isBumped }: { rig: SubgraphRig; onC
     return () => clearInterval(interval);
   }, [rig]);
 
-  // Estimate market cap from revenue (rough proxy)
-  const marketCap = parseFloat(rig.revenue || "0") * 100;
+  // Market cap = minted tokens * current token price (in ETH)
+  const totalMinted = parseFloat(rig.minted || "0");
+  const marketCapEth = totalMinted * currentPrice;
 
   return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left bg-zinc-900/50 hover:bg-zinc-800/50 border rounded-lg transition-all flex flex-col overflow-hidden ${
-        isSelected
-          ? "border-glaze-500 border-2 shadow-[0_0_15px_rgba(236,72,153,0.4)]"
-          : isBumped
-          ? "border-emerald-400 border-2 animate-bump-glow"
+    <Link
+      href={`/franchise/${rig.id}`}
+      className={`block w-full text-left bg-zinc-900/50 hover:bg-zinc-800/50 border rounded-lg transition-all overflow-hidden ${
+        isBumped
+          ? "border-glaze-400 border-2 animate-bump-glow"
           : "border-zinc-800 hover:border-glaze-500/30"
       }`}
     >
-      {/* Image - 4:3 aspect ratio for more compact view */}
-      <div className="aspect-[4/3] w-full bg-zinc-800 relative overflow-hidden">
+      {/* Image - square aspect ratio for compact view */}
+      <div className="aspect-square w-full bg-zinc-800 relative overflow-hidden">
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -70,30 +67,30 @@ function RigCard({ rig, onClick, isSelected, isBumped }: { rig: SubgraphRig; onC
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-glaze-500/20 to-zinc-900">
-            <span className="text-glaze-400 font-bold text-xl">{rig.symbol?.slice(0, 2) || "?"}</span>
+            <span className="text-glaze-400 font-bold text-lg">{rig.symbol?.slice(0, 2) || "?"}</span>
           </div>
         )}
       </div>
 
       {/* Info */}
-      <div className="p-1.5 space-y-0.5">
+      <div className="p-3 space-y-1.5">
         {/* Name & Ticker */}
-        <div className="flex items-center justify-between gap-1">
-          <span className="text-[10px] font-bold text-white truncate">{rig.name || "Unknown"}</span>
-          <span className="text-[8px] font-mono text-glaze-400 shrink-0">${rig.symbol}</span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-bold text-white truncate">{rig.name || "Unknown"}</span>
+          <span className="text-[10px] font-mono text-zinc-400 shrink-0">${rig.symbol}</span>
         </div>
 
         {/* Mine Price & Market Cap */}
-        <div className="flex items-center justify-between text-[8px] font-mono">
-          <span className="text-emerald-400">Ξ{currentPrice.toFixed(4)}</span>
-          <span className="text-zinc-400">${marketCap >= 1000 ? `${(marketCap / 1000).toFixed(0)}K` : marketCap.toFixed(0)}</span>
+        <div className="flex items-center justify-between text-[11px] font-mono">
+          <span className="text-glaze-400">Ξ{currentPrice.toFixed(4)}</span>
+          <span className="text-zinc-500">MC Ξ{marketCapEth >= 1 ? marketCapEth.toFixed(2) : marketCapEth.toFixed(4)}</span>
         </div>
       </div>
-    </button>
+    </Link>
   );
 }
 
-export function ExplorePanel({ onSelectRig, selectedRigId }: ExplorePanelProps) {
+export function ExplorePanel() {
   const {
     rigs,
     isLoading,
@@ -177,39 +174,41 @@ export function ExplorePanel({ onSelectRig, selectedRigId }: ExplorePanelProps) 
   };
 
   return (
-    <div className="flex flex-col h-full gap-2 overflow-hidden px-3 pb-3">
-      {/* Search & Sort */}
-      <div className="flex gap-2 shrink-0">
-        <div className="flex-1 relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search rigs..."
-            className="w-full bg-zinc-900 border border-zinc-800 rounded pl-9 pr-3 py-2 text-xs font-mono text-white placeholder:text-zinc-600 focus:outline-none focus:border-glaze-500/50"
-          />
-        </div>
-        <div className="flex gap-1">
-          {sortOptions.map((opt) => (
-            <button
-              key={opt.mode}
-              onClick={() => setSortMode(opt.mode)}
-              className={`px-2 py-1 text-[10px] font-mono rounded flex items-center gap-1 transition-colors ${
-                sortMode === opt.mode
-                  ? "bg-glaze-500 text-white"
-                  : "bg-zinc-800 text-zinc-400 hover:text-white"
-              }`}
-            >
-              {opt.icon}
-              {opt.label}
-            </button>
-          ))}
+    <div className="flex flex-col h-full px-3 pb-3">
+      {/* Search & Sort - Fixed below header */}
+      <div className="fixed top-14 left-0 right-0 z-40 bg-[#131313]/40 backdrop-blur-sm px-3 lg:px-4 py-2">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex gap-2 max-w-4xl mx-auto">
+            <div className="flex-1">
+              <SearchInput
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search rigs..."
+                className="!py-2 !text-xs"
+              />
+            </div>
+            <div className="flex gap-1">
+              {sortOptions.map((opt) => (
+                <Button
+                  key={opt.mode}
+                  variant={sortMode === opt.mode ? "primary" : "secondary"}
+                  onClick={() => setSortMode(opt.mode)}
+                  className="!px-3 !py-2 !text-xs !normal-case !tracking-normal gap-1"
+                >
+                  {opt.icon}
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* Spacer for fixed search bar */}
+      <div className="h-12" />
+
       {/* Rigs Grid */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1">
         {isLoading ? (
           <div className="flex items-center justify-center h-20">
             <div className="text-zinc-600 text-xs font-mono">Loading...</div>
@@ -219,13 +218,11 @@ export function ExplorePanel({ onSelectRig, selectedRigId }: ExplorePanelProps) 
             <div className="text-zinc-600 text-xs font-mono">No rigs found</div>
           </div>
         ) : (
-          <div className="grid grid-cols-3 lg:grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-w-5xl mx-auto">
             {rigs.map((rig) => (
               <RigCard
                 key={rig.id}
                 rig={rig}
-                onClick={() => onSelectRig?.(rig)}
-                isSelected={rig.id === selectedRigId}
                 isBumped={bumpedIds.has(rig.id)}
               />
             ))}
@@ -233,42 +230,41 @@ export function ExplorePanel({ onSelectRig, selectedRigId }: ExplorePanelProps) 
         )}
       </div>
 
-      {/* Pagination */}
+      {/* Pagination - At bottom of scroll */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-0.5 shrink-0 pt-1">
-          <button
+        <div className="flex items-center justify-center gap-1 py-4">
+          <Button
+            variant="secondary"
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="p-1 rounded bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="!p-2"
           >
-            <ChevronLeft size={12} />
-          </button>
+            <ChevronLeft size={14} />
+          </Button>
 
           {getPageNumbers().map((p, i) => (
             p === "..." ? (
-              <span key={`ellipsis-${i}`} className="px-1 text-zinc-600 text-[10px] font-mono">...</span>
+              <span key={`ellipsis-${i}`} className="px-2 text-corp-500 text-sm font-mono">...</span>
             ) : (
-              <button
+              <Button
                 key={p}
+                variant={page === p ? "primary" : "secondary"}
                 onClick={() => setPage(p)}
-                className={`min-w-[22px] h-5 text-[10px] font-mono rounded transition-colors ${
-                  page === p
-                    ? "bg-glaze-500 text-white"
-                    : "bg-zinc-800 text-zinc-400 hover:text-white"
-                }`}
+                className="!min-w-[32px] !px-2 !py-1 !text-sm"
               >
                 {p}
-              </button>
+              </Button>
             )
           ))}
 
-          <button
+          <Button
+            variant="secondary"
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
-            className="p-1 rounded bg-zinc-800 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="!p-2"
           >
-            <ChevronRight size={12} />
-          </button>
+            <ChevronRight size={14} />
+          </Button>
         </div>
       )}
     </div>

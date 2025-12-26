@@ -42,7 +42,7 @@ export function useMineRig(
             address: LAUNCHPAD_ADDRESSES.multicall as Address,
             abi: LAUNCHPAD_MULTICALL_ABI,
             functionName: "mine",
-            args: [rigAddress, userAddress, rigState.epochId, deadline, maxPrice, uri],
+            args: [rigAddress, rigState.epochId, deadline, maxPrice, uri],
             value: rigState.price,
             chainId: base.id,
           },

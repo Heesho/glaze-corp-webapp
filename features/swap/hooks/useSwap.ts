@@ -14,14 +14,15 @@ import {
   type SwapToken,
 } from "@/lib/api/kyber";
 import {
-  getUniV2Quote,
   buildUniV2SwapCalldata,
+  getTokenUsdValue,
+  getTheoreticalOutput,
   type UniV2Quote,
 } from "@/lib/api/uniswapV2";
 import { TOKEN_ADDRESSES, ERC20_ABI, LAUNCHPAD_ADDRESSES } from "@/lib/blockchain/contracts";
 import { getRigs, fetchRigMetadata, ipfsToHttp, type SubgraphRig } from "@/lib/api/launchpad";
 
-// Base tokens with logos
+// Base tokens with logos (ETH and DONUT only)
 export const BASE_TOKENS: SwapToken[] = [
   {
     address: NATIVE_ETH_ADDRESS,
@@ -37,13 +38,6 @@ export const BASE_TOKENS: SwapToken[] = [
     decimals: 18,
     logoUrl: "/donut-logo.png", // Local donut logo
   },
-  {
-    address: TOKEN_ADDRESSES.usdc,
-    symbol: "USDC",
-    name: "USD Coin",
-    decimals: 6,
-    logoUrl: "https://assets.coingecko.com/coins/images/6319/small/usdc.png",
-  },
 ];
 
 export type SwapStep = "idle" | "quoting" | "approving" | "swapping" | "confirming";
@@ -57,11 +51,17 @@ export function useSwap() {
   const [inputAmount, setInputAmount] = useState("");
   const [franchiseTokens, setFranchiseTokens] = useState<SwapToken[]>([]);
 
+  // Slippage state (in basis points, e.g., 100 = 1%)
+  const [slippageBps, setSlippageBps] = useState(100); // Default 1%
+
   // Quote state
   const [quote, setQuote] = useState<KyberQuoteResponse | null>(null);
   const [uniV2Quote, setUniV2Quote] = useState<UniV2Quote | null>(null);
   const [isQuoting, setIsQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [calculatedOutputUsd, setCalculatedOutputUsd] = useState<string | null>(null);
+  const [calculatedInputUsd, setCalculatedInputUsd] = useState<string | null>(null);
+  const [theoreticalOutput, setTheoreticalOutput] = useState<number>(0);
 
   // Swap state
   const [swapStep, setSwapStep] = useState<SwapStep>("idle");
@@ -77,8 +77,8 @@ export function useSwap() {
     chainId: base.id,
   });
 
-  // Get ERC20 token balance
-  const { data: tokenInBalance, refetch: refetchTokenBalance } = useReadContract({
+  // Get ERC20 token balance for input token
+  const { data: tokenInBalance, refetch: refetchTokenInBalance } = useReadContract({
     address: tokenIn.address !== NATIVE_ETH_ADDRESS ? tokenIn.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "balanceOf",
@@ -86,6 +86,18 @@ export function useSwap() {
     chainId: base.id,
     query: {
       enabled: !!userAddress && tokenIn.address !== NATIVE_ETH_ADDRESS,
+    },
+  });
+
+  // Get ERC20 token balance for output token
+  const { data: tokenOutBalance, refetch: refetchTokenOutBalance } = useReadContract({
+    address: tokenOut.address !== NATIVE_ETH_ADDRESS ? tokenOut.address as Address : undefined,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: userAddress ? [userAddress] : undefined,
+    chainId: base.id,
+    query: {
+      enabled: !!userAddress && tokenOut.address !== NATIVE_ETH_ADDRESS,
     },
   });
 
@@ -131,6 +143,7 @@ export function useSwap() {
               name: rig.name,
               decimals: 18,
               logoUrl,
+              lpAddress: rig.lp, // Store LP address for USD calculation
             };
           })
         );
@@ -143,53 +156,66 @@ export function useSwap() {
     loadFranchiseTokens();
   }, []);
 
-  // Check if this is a DONUT swap that can use UniV2 as fallback
-  const canUseUniV2 = useMemo(() => {
-    const donutAddr = TOKEN_ADDRESSES.donut.toLowerCase();
-    const tokenInAddr = tokenIn.address.toLowerCase();
-    const tokenOutAddr = tokenOut.address.toLowerCase();
-    const isEthOrWeth = (addr: string) =>
-      addr === NATIVE_ETH_ADDRESS.toLowerCase() ||
-      addr === TOKEN_ADDRESSES.weth.toLowerCase();
-
-    return (
-      (tokenInAddr === donutAddr && isEthOrWeth(tokenOutAddr)) ||
-      (tokenOutAddr === donutAddr && isEthOrWeth(tokenInAddr))
-    );
-  }, [tokenIn.address, tokenOut.address]);
-
-  // Debounced quote fetching
+  // Debounced quote fetching (Kyber only)
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (!inputAmount || parseFloat(inputAmount) <= 0) {
         setQuote(null);
         setUniV2Quote(null);
+        setCalculatedOutputUsd(null);
+        setCalculatedInputUsd(null);
+        setTheoreticalOutput(0);
         return;
       }
 
       setIsQuoting(true);
       setQuoteError(null);
+      setCalculatedOutputUsd(null);
+      setCalculatedInputUsd(null);
+      setTheoreticalOutput(0);
 
       try {
         const amountInWei = BigInt(Math.floor(parseFloat(inputAmount) * Math.pow(10, tokenIn.decimals)));
 
-        // Always try Kyber first
         const kyberResult = await getKyberQuote(tokenIn.address, tokenOut.address, amountInWei.toString());
 
         if (kyberResult?.routeSummary) {
           setQuote(kyberResult);
           setUniV2Quote(null);
-        } else if (canUseUniV2) {
-          // Fall back to UniV2 for DONUT swaps if Kyber fails
-          console.log("Kyber failed, trying UniV2 fallback...");
-          const uniResult = await getUniV2Quote(tokenIn.address, tokenOut.address, amountInWei);
-          if (uniResult) {
-            setUniV2Quote(uniResult);
-            setQuote(null);
-          } else {
-            setQuoteError("No route found");
-            setUniV2Quote(null);
+
+          // If Kyber doesn't have USD for output token (franchise tokens), calculate from LP
+          const hasOutputUsd = kyberResult.routeSummary.amountOutUsd &&
+            parseFloat(kyberResult.routeSummary.amountOutUsd) > 0;
+
+          if (!hasOutputUsd && tokenOut.lpAddress) {
+            const outputAmount = parseFloat(formatUnits(BigInt(kyberResult.routeSummary.amountOut), tokenOut.decimals));
+            const usdValue = await getTokenUsdValue(tokenOut.lpAddress, tokenOut.address, outputAmount);
+            if (usdValue > 0) {
+              setCalculatedOutputUsd(usdValue.toFixed(2));
+            }
           }
+
+          // If Kyber doesn't have USD for input token (franchise tokens), calculate from LP
+          const hasInputUsd = kyberResult.routeSummary.amountInUsd &&
+            parseFloat(kyberResult.routeSummary.amountInUsd) > 0;
+
+          if (!hasInputUsd && tokenIn.lpAddress) {
+            const inputAmountNum = parseFloat(inputAmount);
+            const usdValue = await getTokenUsdValue(tokenIn.lpAddress, tokenIn.address, inputAmountNum);
+            if (usdValue > 0) {
+              setCalculatedInputUsd(usdValue.toFixed(2));
+            }
+          }
+
+          // Calculate theoretical output at spot price (no price impact)
+          const lpAddress = tokenOut.lpAddress || tokenIn.lpAddress;
+          const theoretical = await getTheoreticalOutput(
+            tokenIn.address,
+            tokenOut.address,
+            parseFloat(inputAmount),
+            lpAddress
+          );
+          setTheoreticalOutput(theoretical);
         } else {
           setQuoteError("No route found");
           setQuote(null);
@@ -205,7 +231,7 @@ export function useSwap() {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [inputAmount, tokenIn, tokenOut, canUseUniV2]);
+  }, [inputAmount, tokenIn, tokenOut]);
 
   // Format balances
   const formattedBalance = useMemo(() => {
@@ -214,6 +240,13 @@ export function useSwap() {
     }
     return tokenInBalance ? formatUnits(tokenInBalance as bigint, tokenIn.decimals) : "0";
   }, [tokenIn, ethBalance, tokenInBalance]);
+
+  const formattedBalanceOut = useMemo(() => {
+    if (tokenOut.address === NATIVE_ETH_ADDRESS) {
+      return ethBalance ? formatEther(ethBalance.value) : "0";
+    }
+    return tokenOutBalance ? formatUnits(tokenOutBalance as bigint, tokenOut.decimals) : "0";
+  }, [tokenOut, ethBalance, tokenOutBalance]);
 
   // Output amount from quote
   const outputAmount = useMemo(() => {
@@ -226,11 +259,52 @@ export function useSwap() {
     return "";
   }, [quote, uniV2Quote, tokenOut]);
 
-  // Price impact from UniV2 quote
+  // Price impact from quote (Kyber or UniV2)
   const priceImpact = useMemo(() => {
     if (uniV2Quote) return uniV2Quote.priceImpact;
+
+    // Calculate from USD values (Kyber or our calculated values)
+    if (quote?.routeSummary) {
+      // Use Kyber values if available, otherwise use our calculated values
+      let amountInUsd = parseFloat(quote.routeSummary.amountInUsd || "0");
+      let amountOutUsd = parseFloat(quote.routeSummary.amountOutUsd || "0");
+
+      // Fall back to calculated values for franchise tokens
+      if (amountInUsd <= 0 && calculatedInputUsd) {
+        amountInUsd = parseFloat(calculatedInputUsd);
+      }
+      if (amountOutUsd <= 0 && calculatedOutputUsd) {
+        amountOutUsd = parseFloat(calculatedOutputUsd);
+      }
+
+      if (amountInUsd > 0 && amountOutUsd > 0) {
+        // Price impact = how much value is lost in the swap
+        const impact = ((amountInUsd - amountOutUsd) / amountInUsd) * 100;
+        return Math.max(0, impact); // Don't show negative impact
+      }
+    }
     return 0;
-  }, [uniV2Quote]);
+  }, [uniV2Quote, quote, calculatedInputUsd, calculatedOutputUsd]);
+
+  // Calculate minimum received based on theoretical output and slippage
+  const minReceived = useMemo(() => {
+    if (theoreticalOutput > 0) {
+      return theoreticalOutput * (1 - slippageBps / 10000);
+    }
+    // Fall back to quoted output if no theoretical output available
+    if (outputAmount && parseFloat(outputAmount) > 0) {
+      return parseFloat(outputAmount) * (1 - slippageBps / 10000);
+    }
+    return 0;
+  }, [theoreticalOutput, outputAmount, slippageBps]);
+
+  // Check if price impact exceeds slippage tolerance (swap will fail)
+  const willSwapFail = useMemo(() => {
+    if (!quote?.routeSummary || theoreticalOutput <= 0) return false;
+    const quotedOutput = parseFloat(formatUnits(BigInt(quote.routeSummary.amountOut), tokenOut.decimals));
+    // If quoted output is less than minReceived, the swap will fail
+    return quotedOutput < minReceived;
+  }, [quote, theoreticalOutput, minReceived, tokenOut.decimals]);
 
   // Check if approval needed
   const needsApproval = useMemo(() => {
@@ -285,8 +359,8 @@ export function useSwap() {
         },
         {
           onSuccess: () => {
-            setSwapStep("idle");
-            refetchAllowance();
+            // Transaction submitted, wait for confirmation
+            // The useEffect below will handle when isSuccess becomes true
           },
           onError: (error) => {
             console.error("Approve error:", error);
@@ -316,7 +390,7 @@ export function useSwap() {
         const swapData = buildUniV2SwapCalldata(
           uniV2Quote,
           userAddress as Address,
-          100, // 1% slippage
+          slippageBps,
           isEthIn
         );
 
@@ -348,12 +422,23 @@ export function useSwap() {
         return;
       }
 
+      // Calculate effective slippage to pass to Kyber
+      // This ensures Kyber's minAmountOut matches our calculated minReceived
+      let effectiveSlippageBps = slippageBps;
+      if (minReceived > 0) {
+        const quotedOutput = parseFloat(formatUnits(BigInt(quote.routeSummary.amountOut), tokenOut.decimals));
+        if (quotedOutput > 0) {
+          // effectiveSlippage = 1 - (minReceived / quotedOutput)
+          effectiveSlippageBps = Math.max(0, Math.round((1 - minReceived / quotedOutput) * 10000));
+        }
+      }
+
       const buildResult = await buildKyberSwap(
         quote.routeSummary,
         quote.routerAddress,
         userAddress,
         userAddress,
-        100 // 1% slippage
+        effectiveSlippageBps
       );
 
       if (!buildResult?.data) {
@@ -389,18 +474,37 @@ export function useSwap() {
       setSwapStep("idle");
       setSwapError("Swap failed");
     }
-  }, [quote, uniV2Quote, userAddress, tokenIn, sendTransaction]);
+  }, [quote, uniV2Quote, userAddress, tokenIn, tokenOut.decimals, sendTransaction, slippageBps, minReceived]);
 
-  // Handle confirmation
+  // Handle transaction confirmation (both approval and swap)
   useEffect(() => {
-    if (isSuccess && swapStep === "confirming") {
-      setSwapStep("idle");
-      setInputAmount("");
-      setQuote(null);
-      setUniV2Quote(null);
-      refetchTokenBalance();
+    if (isSuccess) {
+      if (swapStep === "approving") {
+        // Approval confirmed - refetch allowance multiple times
+        setSwapStep("idle");
+        refetchAllowance();
+        setTimeout(() => refetchAllowance(), 1000);
+        setTimeout(() => refetchAllowance(), 2000);
+        setTimeout(() => refetchAllowance(), 4000);
+      } else if (swapStep === "confirming") {
+        // Swap confirmed - refetch balances multiple times
+        setSwapStep("idle");
+        setInputAmount("");
+        setQuote(null);
+        setUniV2Quote(null);
+
+        const refetchAll = () => {
+          refetchTokenInBalance();
+          refetchTokenOutBalance();
+        };
+
+        refetchAll();
+        setTimeout(refetchAll, 1000);
+        setTimeout(refetchAll, 3000);
+        setTimeout(refetchAll, 6000);
+      }
     }
-  }, [isSuccess, swapStep, refetchTokenBalance]);
+  }, [isSuccess, swapStep, refetchTokenInBalance, refetchTokenOutBalance, refetchAllowance]);
 
   const isBusy = swapStep !== "idle" || isSending || isConfirming;
 
@@ -421,6 +525,7 @@ export function useSwap() {
     setInputAmount,
     outputAmount,
     formattedBalance,
+    formattedBalanceOut,
     handleSetMax,
 
     // Quote
@@ -430,6 +535,8 @@ export function useSwap() {
     isQuoting,
     quoteError,
     priceImpact,
+    calculatedOutputUsd,
+    calculatedInputUsd,
 
     // Swap
     swapStep,
@@ -438,5 +545,14 @@ export function useSwap() {
     needsApproval,
     handleApprove,
     handleSwap,
+
+    // Slippage
+    slippageBps,
+    setSlippageBps,
+
+    // Minimum received (based on theoretical output at spot price)
+    minReceived,
+    theoreticalOutput,
+    willSwapFail,
   };
 }

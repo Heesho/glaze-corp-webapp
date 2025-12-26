@@ -7,15 +7,18 @@ export const TOKEN_ADDRESSES = {
   donut: "0xAE4a37d554C6D6F3E398546d8566B25052e0169C",
   weth: "0x4200000000000000000000000000000000000006",
   usdc: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  cbbtc: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
   donutEthLp: "0xD1DbB2E56533C55C3A637D13C53aeEf65c5D5703",
-  gDonut: "0x2e5BaC759449b9673Ce2e2e7C87cFce8D8A0b2c3", // GovernanceToken
+  gDonut: "0xC78B6e362cB0f48b59E573dfe7C99d92153a16d3", // GovernanceToken (gDONUT)
 } as const;
 
 // LSG (Liquid Signal Governance) Contract Addresses
 export const LSG_ADDRESSES = {
-  governanceToken: "0x2e5BaC759449b9673Ce2e2e7C87cFce8D8A0b2c3",
-  voter: "0x1fAfC7Ec84ee588F1836833a4217b8a3e6632522",
-  lsgMulticall: "0x1a90e9A7f0ED2C0CB054F470e8F9c06a935B9789",
+  dao: "0x690C2e187c8254a887B35C0B4477ce6787F92855",
+  governanceToken: "0xC78B6e362cB0f48b59E573dfe7C99d92153a16d3", // gDONUT
+  voter: "0x9C5Cf3246d7142cdAeBBD5f653d95ACB73DdabA6",
+  revenueRouter: "0x4799CBe9782265C0633d24c7311dD029090dED33",
+  lsgMulticall: "0x19ceD08B532f81AfcF6c030F6eB53334105075F9",
 } as const;
 
 // Payment token symbols for display
@@ -23,6 +26,7 @@ export const PAYMENT_TOKEN_SYMBOLS: Record<string, string> = {
   [TOKEN_ADDRESSES.donut.toLowerCase()]: "DONUT",
   [TOKEN_ADDRESSES.donutEthLp.toLowerCase()]: "DONUT-ETH LP",
   [TOKEN_ADDRESSES.usdc.toLowerCase()]: "USDC",
+  [TOKEN_ADDRESSES.cbbtc.toLowerCase()]: "cbBTC",
 };
 
 // RPC Configuration
@@ -312,42 +316,42 @@ export const LAUNCHPAD_ADDRESSES = {
 export const LAUNCHPAD_CORE_ABI = [
   {
     inputs: [],
-    name: "getDeployedRigRegistries",
-    outputs: [{ type: "address[]" }],
+    name: "deployedRigsLength",
+    outputs: [{ type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [{ name: "rigRegistry", type: "address" }],
-    name: "getLauncher",
+    inputs: [{ name: "index", type: "uint256" }],
+    name: "deployedRigs",
     outputs: [{ type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [{ name: "rigRegistry", type: "address" }],
-    name: "getUnit",
+    inputs: [{ name: "rig", type: "address" }],
+    name: "rigToUnit",
     outputs: [{ type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [{ name: "rigRegistry", type: "address" }],
-    name: "getAuction",
+    inputs: [{ name: "rig", type: "address" }],
+    name: "rigToAuction",
     outputs: [{ type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [{ name: "rigRegistry", type: "address" }],
-    name: "getLP",
+    inputs: [{ name: "rig", type: "address" }],
+    name: "rigToLP",
     outputs: [{ type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
-    name: "minDonut",
+    name: "minDonutForLaunch",
     outputs: [{ type: "uint256" }],
     stateMutability: "view",
     type: "function",
@@ -358,12 +362,11 @@ export const LAUNCHPAD_CORE_ABI = [
 export const LAUNCHPAD_MULTICALL_ABI = [
   {
     inputs: [
-      { name: "rigRegistry", type: "address" },
-      { name: "account", type: "address" },
+      { name: "rig", type: "address" },
       { name: "epochId", type: "uint256" },
       { name: "deadline", type: "uint256" },
       { name: "maxPrice", type: "uint256" },
-      { name: "uri", type: "string" },
+      { name: "epochUri", type: "string" },
     ],
     name: "mine",
     outputs: [],
@@ -372,12 +375,10 @@ export const LAUNCHPAD_MULTICALL_ABI = [
   },
   {
     inputs: [
-      { name: "rigRegistry", type: "address" },
-      { name: "account", type: "address" },
+      { name: "rig", type: "address" },
       { name: "epochId", type: "uint256" },
       { name: "deadline", type: "uint256" },
-      { name: "maxPrice", type: "uint256" },
-      { name: "lpAmount", type: "uint256" },
+      { name: "maxPaymentTokenAmount", type: "uint256" },
     ],
     name: "buy",
     outputs: [],
@@ -469,3 +470,17 @@ export const LAUNCH_DEFAULTS = {
   auctionEpochPeriod: 86400n, // 24 hours
   auctionPriceMultiplier: 12000n, // 1.2x
 } as const;
+
+// Franchise Auction State type (from multicall getAuction)
+export type FranchiseAuctionState = {
+  epochId: bigint;
+  initPrice: bigint;
+  startTime: bigint;
+  paymentToken: `0x${string}`;
+  price: bigint;
+  paymentTokenPrice: bigint;
+  wethAccumulated: bigint;
+  wethBalance: bigint;
+  donutBalance: bigint;
+  paymentTokenBalance: bigint;
+};

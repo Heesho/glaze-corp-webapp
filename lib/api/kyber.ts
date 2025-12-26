@@ -31,6 +31,7 @@ export interface KyberQuoteResponse {
   routeSummary?: {
     tokenIn: string;
     amountIn: string;
+    amountInUsd?: string;
     tokenOut: string;
     amountOut: string;
     amountOutUsd: string;
@@ -57,6 +58,7 @@ export interface SwapToken {
   name: string;
   decimals: number;
   logoUrl?: string;
+  lpAddress?: string; // UniV2 LP address (for franchise tokens paired with DONUT)
 }
 
 // Native ETH represented as zero address in Kyber
