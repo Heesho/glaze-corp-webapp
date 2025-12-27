@@ -23,8 +23,11 @@ interface VotePanelProps {
   canVote: boolean;
   hasActiveVotes: boolean;
   ethPrice: number;
+  btcPrice: number;
   donutPriceInEth: bigint;
   lpPriceUsd: number;
+  isLoading?: boolean;
+  error?: Error | null;
   onSuccess: () => void;
 }
 
@@ -61,12 +64,14 @@ const getStrategyInfo = (paymentToken: Address): { action: string; destination: 
 const getTokenUsdPrice = (
   token: Address,
   ethPrice: number,
+  btcPrice: number,
   donutPriceUsd: number,
   lpPriceUsd: number
 ): number => {
   const tokenLower = token.toLowerCase();
   if (tokenLower === TOKEN_ADDRESSES.weth.toLowerCase()) return ethPrice;
   if (tokenLower === TOKEN_ADDRESSES.usdc.toLowerCase()) return 1;
+  if (tokenLower === TOKEN_ADDRESSES.cbbtc.toLowerCase()) return btcPrice;
   if (tokenLower === TOKEN_ADDRESSES.donut.toLowerCase()) return donutPriceUsd;
   if (tokenLower === TOKEN_ADDRESSES.donutEthLp.toLowerCase()) return lpPriceUsd;
   return 0;
@@ -81,8 +86,11 @@ export function VotePanel({
   canVote,
   hasActiveVotes,
   ethPrice,
+  btcPrice,
   donutPriceInEth,
   lpPriceUsd,
+  isLoading,
+  error,
   onSuccess,
 }: VotePanelProps) {
   // Calculate DONUT price in USD
@@ -110,9 +118,23 @@ export function VotePanel({
           Strategies
         </div>
         <div className="space-y-2">
-          {bribesData.length === 0 ? (
-            <div className="flex items-center justify-center h-20">
-              <div className="text-zinc-600 text-xs font-mono">Loading...</div>
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center h-20 gap-2">
+              <div className="text-zinc-600 text-xs font-mono">Loading strategies...</div>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center h-24 gap-2 px-4">
+              <div className="text-red-400 text-xs font-mono">Failed to load strategies</div>
+              <div className="text-zinc-600 text-[10px] font-mono max-w-xs text-center">
+                {error.message?.includes("429") || error.message?.includes("limit")
+                  ? "RPC rate limit exceeded. Try refreshing in a few minutes."
+                  : error.message || "Check your network connection"}
+              </div>
+            </div>
+          ) : bribesData.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-20 gap-2">
+              <div className="text-zinc-600 text-xs font-mono">No active strategies</div>
+              <div className="text-zinc-700 text-[10px] font-mono">Strategies will appear when available</div>
             </div>
           ) : (
             bribesData.map((bribe, i) => {
@@ -132,16 +154,23 @@ export function VotePanel({
               const userEarned = paymentTokenIndex >= 0 ? bribe.accountRewardsEarned[paymentTokenIndex] : 0n;
               const earnedDecimals = paymentTokenIndex >= 0 ? bribe.rewardTokenDecimals[paymentTokenIndex] : 18;
 
-              // Calculate APR using rewardsPerToken and USD prices (like miniapp)
-              let rewardsPerVoteUsd = 0;
+              // Calculate APR using rewardsPerToken and USD prices
+              // rewardsPerToken is weekly rewards (in base units) per 1e18 gDONUT staked
+              // For low-decimal tokens like cbBTC (8 decimals), this can be a small value like 2
+              // We must annualize BEFORE converting to avoid precision loss
+              let annualRewardsUsd = 0;
               bribe.rewardTokens.forEach((token, idx) => {
                 const rewardsPerToken = bribe.rewardsPerToken[idx] ?? 0n;
                 const decimals = bribe.rewardTokenDecimals[idx] ?? 18;
-                const tokenAmount = Number(formatUnits(rewardsPerToken, decimals));
-                const tokenPrice = getTokenUsdPrice(token, ethPrice, donutPriceUsd, lpPriceUsd);
-                rewardsPerVoteUsd += tokenAmount * tokenPrice;
+                // Annualize first (52 weeks) while keeping bigint precision
+                const annualRewardsPerGDonut = rewardsPerToken * 52n;
+                // Now convert to human-readable using reward token decimals
+                const annualRewardsHuman = Number(formatUnits(annualRewardsPerGDonut, decimals));
+                const tokenPrice = getTokenUsdPrice(token, ethPrice, btcPrice, donutPriceUsd, lpPriceUsd);
+                annualRewardsUsd += annualRewardsHuman * tokenPrice;
               });
-              const apr = donutPriceUsd > 0 ? (rewardsPerVoteUsd / donutPriceUsd) * 52 * 100 : 0;
+              // APR = (annual rewards USD per 1 gDONUT) / (1 gDONUT price in USD) * 100
+              const apr = donutPriceUsd > 0 ? (annualRewardsUsd / donutPriceUsd) * 100 : 0;
 
               // User's vote as percentage
               const userVotePercent =
