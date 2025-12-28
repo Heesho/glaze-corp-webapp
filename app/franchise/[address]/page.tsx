@@ -562,7 +562,7 @@ export default function RigDetailPage() {
                           {messageContent}
                         </td>
                         <td className={`py-3 text-sm text-right tabular-nums ${isLive ? "text-corp-100" : "text-corp-200"}`}>
-                          Ξ{parseFloat(isLive ? (epoch.initPrice || "0") : (epoch.spent || "0")).toFixed(4)}
+                          Ξ{parseFloat(epoch.spent || "0").toFixed(4)}
                         </td>
                         <td className={`py-3 text-sm text-right tabular-nums ${isLive ? "text-glaze-400" : "text-corp-200"}`}>
                           {isLive ? (
