@@ -25,3 +25,19 @@ export async function fetchBtcPrice(): Promise<number> {
     return 0;
   }
 }
+
+/**
+ * Fetch current QR Coin price in USD from CoinGecko
+ */
+export async function fetchQrPrice(): Promise<number> {
+  try {
+    const res = await fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=qr-coin&vs_currencies=usd"
+    );
+    const json = await res.json();
+    return json?.["qr-coin"]?.usd ?? 0;
+  } catch (error) {
+    console.error("Failed to fetch QR price:", error);
+    return 0;
+  }
+}
