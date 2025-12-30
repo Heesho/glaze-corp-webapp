@@ -10,6 +10,7 @@ export const TOKEN_ADDRESSES = {
   cbbtc: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
   donutEthLp: "0xD1DbB2E56533C55C3A637D13C53aeEf65c5D5703",
   gDonut: "0xC78B6e362cB0f48b59E573dfe7C99d92153a16d3", // GovernanceToken (gDONUT)
+  qr: "0x2b5050f01d64fbb3e4ac44dc07f0732bfb5ecadf", // QR Coin
 } as const;
 
 // LSG (Liquid Signal Governance) Contract Addresses
@@ -27,6 +28,7 @@ export const PAYMENT_TOKEN_SYMBOLS: Record<string, string> = {
   [TOKEN_ADDRESSES.donutEthLp.toLowerCase()]: "DONUT-ETH LP",
   [TOKEN_ADDRESSES.usdc.toLowerCase()]: "USDC",
   [TOKEN_ADDRESSES.cbbtc.toLowerCase()]: "cbBTC",
+  [TOKEN_ADDRESSES.qr.toLowerCase()]: "QR",
 };
 
 // RPC Configuration
