@@ -114,7 +114,7 @@ export function useGovernData(userAddress?: Address) {
   }, [rawVoterData]);
 
   // Fetch all bribes data
-  const { data: rawBribesData, refetch: refetchBribesData } = useReadContract({
+  const { data: rawBribesData, error: bribesError, refetch: refetchBribesData } = useReadContract({
     address: LSG_ADDRESSES.lsgMulticall as Address,
     abi: LSG_MULTICALL_ABI,
     functionName: "getAllBribesData",
@@ -125,8 +125,12 @@ export function useGovernData(userAddress?: Address) {
 
   const bribesData = useMemo(() => {
     if (!rawBribesData) return [];
-    return (rawBribesData as unknown as BribeData[]).filter((b) => b.isAlive);
+    const allBribes = rawBribesData as unknown as BribeData[];
+    return allBribes.filter((b) => b.isAlive);
   }, [rawBribesData]);
+
+  // Loading states
+  const isBribesLoading = !rawBribesData && !bribesError;
 
   // Fetch all strategies data
   const { data: rawStrategiesData, refetch: refetchStrategiesData } = useReadContract({
@@ -241,6 +245,8 @@ export function useGovernData(userAddress?: Address) {
     canUnstake,
     totalPendingRewards,
     allBribeAddresses,
+    isBribesLoading,
+    bribesError,
     refetchAll,
     refetchVoterData,
     refetchBribesData,

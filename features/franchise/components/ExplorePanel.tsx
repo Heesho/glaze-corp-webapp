@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { TrendingUp, Clock, Flame, ChevronLeft, ChevronRight } from "lucide-react";
+import { TrendingUp, Clock, Flame, ChevronLeft, ChevronRight, Rocket } from "lucide-react";
 
 import { useExploreRigs, type SortMode } from "../hooks/useExploreRigs";
 import { type SubgraphRig, ipfsToHttp, fetchRigMetadata, calculateCurrentPrice } from "@/lib/api/launchpad";
-import { fetchEthPrice } from "@/lib/api/price";
+import { getTokenPriceInDonut, getDonutUsdPrice } from "@/lib/api/uniswapV2";
 import { Button } from "@/components/ui/Button";
 import { SearchInput } from "@/components/ui/Input";
+import type { Address } from "viem";
 
 // Subgraph returns values as formatted decimals, not wei
 const formatNumber = (value: string) => {
@@ -23,9 +24,10 @@ const formatEth = (value: string) => {
   return num.toFixed(3);
 };
 
-function RigCard({ rig, isBumped, ethPriceUsd }: { rig: SubgraphRig; isBumped?: boolean; ethPriceUsd: number }) {
+function RigCard({ rig, isBumped, donutPriceUsd }: { rig: SubgraphRig; isBumped?: boolean; donutPriceUsd: number }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [currentPrice, setCurrentPrice] = useState(0);
+  const [marketCapUsd, setMarketCapUsd] = useState(0);
 
   useEffect(() => {
     if (rig.uri) {
@@ -45,10 +47,24 @@ function RigCard({ rig, isBumped, ethPriceUsd }: { rig: SubgraphRig; isBumped?: 
     return () => clearInterval(interval);
   }, [rig]);
 
-  // Market cap = minted tokens * current token price (in ETH) * ETH price (in USD)
-  const totalMinted = parseFloat(rig.minted || "0");
-  const marketCapEth = totalMinted * currentPrice;
-  const marketCapUsd = marketCapEth * ethPriceUsd;
+  // Market cap = totalSupply * tokenPrice
+  // tokenPrice = priceInDonut * donutPriceUsd
+  useEffect(() => {
+    if (!rig.lp || !rig.unit || donutPriceUsd === 0) return;
+
+    const fetchMarketCap = async () => {
+      try {
+        const priceInDonut = await getTokenPriceInDonut(rig.lp as Address, rig.unit);
+        const totalSupply = parseFloat(rig.minted || "0");
+        const tokenPriceUsd = priceInDonut * donutPriceUsd;
+        setMarketCapUsd(totalSupply * tokenPriceUsd);
+      } catch (error) {
+        console.error("Failed to fetch market cap:", error);
+      }
+    };
+
+    fetchMarketCap();
+  }, [rig.lp, rig.unit, rig.minted, donutPriceUsd]);
 
   return (
     <Link
@@ -105,12 +121,12 @@ export function ExplorePanel() {
     totalPages,
   } = useExploreRigs();
 
-  const [ethPriceUsd, setEthPriceUsd] = useState(0);
+  const [donutPriceUsd, setDonutPriceUsd] = useState(0);
 
-  // Fetch ETH price
+  // Fetch DONUT price for market cap calculation
   useEffect(() => {
-    fetchEthPrice().then(setEthPriceUsd);
-    const interval = setInterval(() => fetchEthPrice().then(setEthPriceUsd), 60_000);
+    getDonutUsdPrice().then(setDonutPriceUsd);
+    const interval = setInterval(() => getDonutUsdPrice().then(setDonutPriceUsd), 60_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -189,7 +205,15 @@ export function ExplorePanel() {
       {/* Search & Sort - Fixed below header */}
       <div className="fixed top-14 left-0 right-0 z-40 bg-[#131313]/40 backdrop-blur-sm px-3 lg:px-4 py-2">
         <div className="max-w-7xl mx-auto">
-          <div className="flex gap-2 max-w-4xl mx-auto">
+          <div className="flex gap-2 max-w-5xl mx-auto items-center">
+            <Button
+              variant="primary"
+              disabled
+              className="!px-3 !py-2 !text-xs !normal-case !tracking-normal gap-1 !opacity-50"
+            >
+              <Rocket size={12} />
+              Launch
+            </Button>
             <div className="flex-1">
               <SearchInput
                 value={searchQuery}
@@ -235,7 +259,7 @@ export function ExplorePanel() {
                 key={rig.id}
                 rig={rig}
                 isBumped={bumpedIds.has(rig.id)}
-                ethPriceUsd={ethPriceUsd}
+                donutPriceUsd={donutPriceUsd}
               />
             ))}
           </div>
