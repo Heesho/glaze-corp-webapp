@@ -1,7 +1,7 @@
 // Uniswap V2 direct integration for DONUT swaps
-import { createPublicClient, http, formatUnits, parseUnits, type Address } from "viem";
+import { createPublicClient, http, fallback, formatUnits, parseUnits, type Address } from "viem";
 import { base } from "viem/chains";
-import { TOKEN_ADDRESSES, LAUNCHPAD_ADDRESSES, RPC_URL } from "@/lib/blockchain/contracts";
+import { TOKEN_ADDRESSES, LAUNCHPAD_ADDRESSES, RPC_URLS } from "@/lib/blockchain/contracts";
 import { NATIVE_ETH_ADDRESS } from "./kyber";
 
 // ERC20 ABI for totalSupply
@@ -88,7 +88,7 @@ export const UNIV2_ROUTER_ABI = [
 
 const client = createPublicClient({
   chain: base,
-  transport: http(RPC_URL),
+  transport: fallback(RPC_URLS.map(url => http(url))),
 });
 
 export interface UniV2Quote {

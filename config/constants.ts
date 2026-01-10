@@ -1,5 +1,5 @@
 // Timing
-export const POLLING_INTERVAL_MS = 5000;
+export const POLLING_INTERVAL_MS = 15000; // 15 seconds to reduce RPC load
 export const TICKER_INTERVAL_MS = 100;
 export const OVERRIDE_DISPLAY_DURATION_MS = 10000;
 export const CHANNEL_SWITCH_DELAY_MS = 300;

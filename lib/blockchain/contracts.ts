@@ -31,8 +31,14 @@ export const PAYMENT_TOKEN_SYMBOLS: Record<string, string> = {
   [TOKEN_ADDRESSES.qr.toLowerCase()]: "QR",
 };
 
-// RPC Configuration
-export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL;
+// RPC Configuration - Alchemy first (most reliable), public RPCs as fallback
+export const RPC_URLS = [
+  process.env.NEXT_PUBLIC_RPC_URL,
+  "https://mainnet.base.org",
+  "https://base.llamarpc.com",
+].filter(Boolean) as string[];
+
+export const RPC_URL = RPC_URLS[0];
 
 // Multicall ABI for getMiner and mine functions
 export const MULTICALL_ABI = [

@@ -5,9 +5,9 @@ import { base } from "wagmi/chains";
 // WalletConnect project ID - get one at https://cloud.walletconnect.com
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "placeholder";
 
-// RPC URLs with fallbacks
+// RPC URLs with fallbacks - Alchemy first (most reliable), public as backup
 const rpcUrls = [
-  process.env.NEXT_PUBLIC_RPC_URL, // Primary (Alchemy)
+  process.env.NEXT_PUBLIC_RPC_URL, // Alchemy (primary)
   "https://mainnet.base.org",      // Public Base RPC
   "https://base.llamarpc.com",     // Llama RPC
 ].filter(Boolean) as string[];
