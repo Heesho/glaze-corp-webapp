@@ -30,7 +30,7 @@ function useDeployedRigsCount() {
     functionName: "deployedRigsLength",
     chainId: base.id,
     query: {
-      refetchInterval: 30_000,
+      refetchInterval: 60_000, // 1 minute - rig count rarely changes
     },
   });
 
@@ -107,7 +107,7 @@ export function useFranchiseAuctions(account?: Address) {
     contracts: auctionContracts,
     query: {
       enabled: rigAddresses.length > 0,
-      refetchInterval: 10_000,
+      refetchInterval: 30_000, // 30 seconds
     },
   });
 

@@ -83,10 +83,10 @@ export function useRigState(rig?: SubgraphRig | null) {
     fetchRigState();
   }, [fetchRigState]);
 
-  // Polling
+  // Polling - 15 seconds
   useEffect(() => {
     if (!rigAddress) return;
-    const interval = setInterval(fetchRigState, 5000);
+    const interval = setInterval(fetchRigState, 15000);
     return () => clearInterval(interval);
   }, [rigAddress, fetchRigState]);
 

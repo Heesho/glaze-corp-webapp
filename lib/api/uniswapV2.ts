@@ -144,26 +144,24 @@ export async function getDonutUsdPrice(): Promise<number> {
 
 /**
  * Get token price in DONUT from a UniV2 LP pair
+ * Uses multicall to batch RPC calls
  */
 export async function getTokenPriceInDonut(
   lpAddress: Address,
   tokenAddress: string
 ): Promise<number> {
   try {
-    const [reserves, token0] = await Promise.all([
-      client.readContract({
-        address: lpAddress,
-        abi: PAIR_ABI,
-        functionName: "getReserves",
-      }),
-      client.readContract({
-        address: lpAddress,
-        abi: PAIR_ABI,
-        functionName: "token0",
-      }),
-    ]);
+    const results = await client.multicall({
+      contracts: [
+        { address: lpAddress, abi: PAIR_ABI, functionName: "getReserves" },
+        { address: lpAddress, abi: PAIR_ABI, functionName: "token0" },
+      ],
+    });
 
-    const [reserve0, reserve1] = reserves;
+    if (results[0].status !== "success" || results[1].status !== "success") return 0;
+
+    const [reserve0, reserve1] = results[0].result as [bigint, bigint, number];
+    const token0 = results[1].result as Address;
     const isToken0 = token0.toLowerCase() === tokenAddress.toLowerCase();
 
     // Token reserves
@@ -236,6 +234,7 @@ function calculatePriceImpact(
 
 /**
  * Get a quote for swapping between ETH/WETH and DONUT
+ * Uses multicall to batch RPC calls
  */
 export async function getUniV2Quote(
   tokenInAddress: string,
@@ -245,20 +244,18 @@ export async function getUniV2Quote(
   try {
     const lpAddress = TOKEN_ADDRESSES.donutEthLp as Address;
 
-    // Get reserves and token order from LP
-    const [reserves, token0] = await Promise.all([
-      client.readContract({
-        address: lpAddress,
-        abi: PAIR_ABI,
-        functionName: "getReserves",
-      }),
-      client.readContract({
-        address: lpAddress,
-        abi: PAIR_ABI,
-        functionName: "token0",
-      }),
-    ]);
+    // Get reserves and token order from LP using multicall
+    const results = await client.multicall({
+      contracts: [
+        { address: lpAddress, abi: PAIR_ABI, functionName: "getReserves" },
+        { address: lpAddress, abi: PAIR_ABI, functionName: "token0" },
+      ],
+    });
 
+    if (results[0].status !== "success" || results[1].status !== "success") return null;
+
+    const reserves = results[0].result as [bigint, bigint, number];
+    const token0 = results[1].result as Address;
     const [reserve0, reserve1] = reserves;
     const isDonutToken0 = token0.toLowerCase() === TOKEN_ADDRESSES.donut.toLowerCase();
 
@@ -353,26 +350,24 @@ export function buildUniV2SwapCalldata(
 /**
  * Get spot price from LP reserves (no price impact)
  * Returns how much of tokenOut you get for 1 tokenIn
+ * Uses multicall to batch RPC calls
  */
 export async function getLpSpotPrice(
   lpAddress: Address,
   tokenInAddress: string
 ): Promise<number> {
   try {
-    const [reserves, token0] = await Promise.all([
-      client.readContract({
-        address: lpAddress,
-        abi: PAIR_ABI,
-        functionName: "getReserves",
-      }),
-      client.readContract({
-        address: lpAddress,
-        abi: PAIR_ABI,
-        functionName: "token0",
-      }),
-    ]);
+    const results = await client.multicall({
+      contracts: [
+        { address: lpAddress, abi: PAIR_ABI, functionName: "getReserves" },
+        { address: lpAddress, abi: PAIR_ABI, functionName: "token0" },
+      ],
+    });
 
-    const [reserve0, reserve1] = reserves;
+    if (results[0].status !== "success" || results[1].status !== "success") return 0;
+
+    const [reserve0, reserve1] = results[0].result as [bigint, bigint, number];
+    const token0 = results[1].result as Address;
     const isToken0In = token0.toLowerCase() === tokenInAddress.toLowerCase();
 
     const reserveIn = isToken0In ? reserve0 : reserve1;
@@ -453,6 +448,7 @@ export async function getTheoreticalOutput(
 /**
  * Get the USD price of an LP token
  * LP value = (reserveDonut * donutPriceUsd + reserveWeth * ethPriceUsd) / totalSupply
+ * Uses multicall to batch all 3 RPC calls into 1
  */
 export async function getLpTokenPriceUsd(
   lpAddress: Address,
@@ -460,27 +456,24 @@ export async function getLpTokenPriceUsd(
   donutPriceUsd: number
 ): Promise<number> {
   try {
-    const [reserves, token0, totalSupply] = await Promise.all([
-      client.readContract({
-        address: lpAddress,
-        abi: PAIR_ABI,
-        functionName: "getReserves",
-      }),
-      client.readContract({
-        address: lpAddress,
-        abi: PAIR_ABI,
-        functionName: "token0",
-      }),
-      client.readContract({
-        address: lpAddress,
-        abi: ERC20_TOTAL_SUPPLY_ABI,
-        functionName: "totalSupply",
-      }),
-    ]);
+    const results = await client.multicall({
+      contracts: [
+        { address: lpAddress, abi: PAIR_ABI, functionName: "getReserves" },
+        { address: lpAddress, abi: PAIR_ABI, functionName: "token0" },
+        { address: lpAddress, abi: ERC20_TOTAL_SUPPLY_ABI, functionName: "totalSupply" },
+      ],
+    });
+
+    if (results[0].status !== "success" || results[1].status !== "success" || results[2].status !== "success") {
+      return 0;
+    }
+
+    const [reserve0, reserve1] = results[0].result as [bigint, bigint, number];
+    const token0 = results[1].result as Address;
+    const totalSupply = results[2].result as bigint;
 
     if (totalSupply === 0n) return 0;
 
-    const [reserve0, reserve1] = reserves;
     const isDonutToken0 = token0.toLowerCase() === TOKEN_ADDRESSES.donut.toLowerCase();
 
     // Get reserves in native units (both are 18 decimals)
