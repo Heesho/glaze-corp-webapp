@@ -14,7 +14,7 @@ import {
   EpochTimingCard,
 } from "@/features/system";
 import { MULTICALL_ABI, MULTICALL_ADDRESS, TOKEN_ADDRESSES } from "@/lib/blockchain/contracts";
-import { fetchEthPrice, fetchBtcPrice } from "@/lib/api/price";
+import { fetchEthPrice, fetchBtcPrice, fetchQrPrice } from "@/lib/api/price";
 import { getLpTokenPriceUsd } from "@/lib/api/uniswapV2";
 import { POLLING_INTERVAL_MS } from "@/config/constants";
 import type { Address } from "viem";
@@ -23,6 +23,7 @@ export default function SystemPage() {
   const { address: userAddress, isConnected } = useAccount();
   const [ethPrice, setEthPrice] = useState(0);
   const [btcPrice, setBtcPrice] = useState(0);
+  const [qrPriceUsd, setQrPriceUsd] = useState(0);
   const [donutPriceUsd, setDonutPriceUsd] = useState(0);
   const [lpPriceUsd, setLpPriceUsd] = useState(0);
 
@@ -46,13 +47,18 @@ export default function SystemPage() {
   // Fetch prices
   useEffect(() => {
     const fetchPrices = async () => {
-      const [ethPriceValue, btcPriceValue] = await Promise.all([
+      const [ethPriceValue, btcPriceValue, qrPriceValue] = await Promise.all([
         fetchEthPrice(),
         fetchBtcPrice(),
+        fetchQrPrice(),
       ]);
 
       if (btcPriceValue > 0) {
         setBtcPrice(btcPriceValue);
+      }
+
+      if (qrPriceValue > 0) {
+        setQrPriceUsd(qrPriceValue);
       }
 
       if (ethPriceValue > 0) {
@@ -112,6 +118,7 @@ export default function SystemPage() {
               prices={{
                 ethPrice,
                 btcPrice,
+                qrPriceUsd,
                 donutPriceUsd,
                 lpPriceUsd,
               }}

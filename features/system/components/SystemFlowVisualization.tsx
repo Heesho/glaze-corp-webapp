@@ -9,6 +9,7 @@ import type { SystemOverview, StrategyOverview } from "../hooks/useSystemData";
 interface PriceData {
   ethPrice: number;
   btcPrice: number;
+  qrPriceUsd: number;
   donutPriceUsd: number;
   lpPriceUsd: number;
 }
@@ -26,6 +27,7 @@ const getTokenUsdPrice = (symbol: string, prices: PriceData): number => {
   if (s === "UNI-V2" || s.includes("LP")) return prices.lpPriceUsd;
   if (s === "USDC") return 1;
   if (s === "CBBTC") return prices.btcPrice;
+  if (s === "QR") return prices.qrPriceUsd;
   return 0;
 };
 
