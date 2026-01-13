@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { useAuctions, type StrategyAuctionData } from "@/features/auctions/hooks/useAuctions";
 import { useFranchiseAuctions, useFranchiseAuctionBuy, type FranchiseAuctionItem } from "@/features/franchise/hooks/useFranchiseAuctions";
 import { MULTICALL_ABI, MULTICALL_ADDRESS, TOKEN_ADDRESSES } from "@/lib/blockchain/contracts";
-import { fetchEthPrice, fetchQrPrice } from "@/lib/api/price";
+import { fetchEthPrice, fetchQrPrice, fetchAeroPrice } from "@/lib/api/price";
 import { getLpTokenPriceUsd } from "@/lib/api/uniswapV2";
 import { ipfsToHttp, fetchRigMetadata } from "@/lib/api/launchpad";
 import { POLLING_INTERVAL_MS } from "@/config/constants";
@@ -56,7 +56,8 @@ const getPaymentTokenUsdPrice = (
   ethPrice: number,
   donutPriceUsd: number,
   lpPriceUsd: number,
-  qrPriceUsd: number
+  qrPriceUsd: number,
+  aeroPriceUsd: number
 ): number => {
   const tokenLower = token.toLowerCase();
   if (tokenLower === TOKEN_ADDRESSES.weth.toLowerCase()) return ethPrice;
@@ -65,6 +66,7 @@ const getPaymentTokenUsdPrice = (
   if (tokenLower === TOKEN_ADDRESSES.donutEthLp.toLowerCase()) return lpPriceUsd;
   if (tokenLower === TOKEN_ADDRESSES.cbbtc.toLowerCase()) return ethPrice * 28;
   if (tokenLower === TOKEN_ADDRESSES.qr.toLowerCase()) return qrPriceUsd;
+  if (tokenLower === TOKEN_ADDRESSES.aero.toLowerCase()) return aeroPriceUsd;
   return 0;
 };
 
@@ -227,6 +229,7 @@ export default function AuctionsPage() {
   const [lpPriceUsd, setLpPriceUsd] = useState(0);
   const [donutPriceUsd, setDonutPriceUsd] = useState(0);
   const [qrPriceUsd, setQrPriceUsd] = useState(0);
+  const [aeroPriceUsd, setAeroPriceUsd] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const [activeAuctionId, setActiveAuctionId] = useState<string | null>(null);
   const [franchiseImages, setFranchiseImages] = useState<Record<string, string | null>>({});
@@ -275,16 +278,21 @@ export default function AuctionsPage() {
     refetchFranchise
   );
 
-  // Fetch ETH price, QR price, and LP price
+  // Fetch ETH price, QR price, AERO price, and LP price
   useEffect(() => {
     const fetchPrices = async () => {
-      const [ethPriceValue, qrPriceValue] = await Promise.all([
+      const [ethPriceValue, qrPriceValue, aeroPriceValue] = await Promise.all([
         fetchEthPrice(),
         fetchQrPrice(),
+        fetchAeroPrice(),
       ]);
 
       if (qrPriceValue > 0) {
         setQrPriceUsd(qrPriceValue);
+      }
+
+      if (aeroPriceValue > 0) {
+        setAeroPriceUsd(aeroPriceValue);
       }
 
       if (ethPriceValue > 0) {
@@ -329,7 +337,7 @@ export default function AuctionsPage() {
 
     // Add strategy auctions
     strategies.forEach((strategy) => {
-      const paymentPrice = getPaymentTokenUsdPrice(strategy.paymentToken, ethPrice, donutPriceUsd, lpPriceUsd, qrPriceUsd);
+      const paymentPrice = getPaymentTokenUsdPrice(strategy.paymentToken, ethPrice, donutPriceUsd, lpPriceUsd, qrPriceUsd, aeroPriceUsd);
       const payUsd = Number(formatUnits(strategy.currentPrice, strategy.paymentTokenDecimals)) * paymentPrice;
       const getUsd = Number(formatUnits(strategy.revenueBalance, 18)) * ethPrice;
       const profitUsd = getUsd - payUsd;
@@ -393,7 +401,7 @@ export default function AuctionsPage() {
 
     // Sort by profit percentage (highest first)
     return result.sort((a, b) => b.profitPercent - a.profitPercent);
-  }, [strategies, franchiseAuctions, ethPrice, donutPriceUsd, lpPriceUsd, qrPriceUsd, getPaymentTokenSymbol, franchiseImages]);
+  }, [strategies, franchiseAuctions, ethPrice, donutPriceUsd, lpPriceUsd, qrPriceUsd, aeroPriceUsd, getPaymentTokenSymbol, franchiseImages]);
 
   // Pagination (1-indexed like franchise page)
   const page = currentPage + 1;

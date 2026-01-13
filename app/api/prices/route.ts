@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 // Cache prices for 2 minutes server-side to reduce external API calls
-let cachedPrices: { eth: number; btc: number; qr: number } | null = null;
+let cachedPrices: { eth: number; btc: number; qr: number; aero: number } | null = null;
 let cacheTime = 0;
 const CACHE_DURATION = 120000; // 2 minutes
 
@@ -15,22 +15,25 @@ export async function GET() {
 
   try {
     // Fetch all prices in parallel
-    const [ethRes, btcRes, qrRes] = await Promise.all([
+    const [ethRes, btcRes, qrRes, aeroRes] = await Promise.all([
       fetch("https://api.coinbase.com/v2/prices/ETH-USD/spot"),
       fetch("https://api.coinbase.com/v2/prices/BTC-USD/spot"),
       fetch("https://api.coingecko.com/api/v3/simple/price?ids=qr-coin&vs_currencies=usd"),
+      fetch("https://api.coingecko.com/api/v3/simple/price?ids=aerodrome-finance&vs_currencies=usd"),
     ]);
 
-    const [ethData, btcData, qrData] = await Promise.all([
+    const [ethData, btcData, qrData, aeroData] = await Promise.all([
       ethRes.json(),
       btcRes.json(),
       qrRes.json(),
+      aeroRes.json(),
     ]);
 
     const prices = {
       eth: ethData?.data?.amount ? parseFloat(ethData.data.amount) : 0,
       btc: btcData?.data?.amount ? parseFloat(btcData.data.amount) : 0,
       qr: qrData?.["qr-coin"]?.usd ?? 0,
+      aero: aeroData?.["aerodrome-finance"]?.usd ?? 0,
     };
 
     // Cache the result
@@ -46,6 +49,6 @@ export async function GET() {
       return NextResponse.json(cachedPrices);
     }
 
-    return NextResponse.json({ eth: 0, btc: 0, qr: 0 }, { status: 500 });
+    return NextResponse.json({ eth: 0, btc: 0, qr: 0, aero: 0 }, { status: 500 });
   }
 }

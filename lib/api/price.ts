@@ -1,12 +1,12 @@
 // Cached prices from API
-let cachedPrices: { eth: number; btc: number; qr: number } | null = null;
+let cachedPrices: { eth: number; btc: number; qr: number; aero: number } | null = null;
 let lastFetchTime = 0;
 const CACHE_DURATION = 60000; // 1 minute client-side cache
 
 /**
  * Fetch all prices from our API route (avoids CORS, reduces calls)
  */
-async function fetchAllPrices(): Promise<{ eth: number; btc: number; qr: number }> {
+async function fetchAllPrices(): Promise<{ eth: number; btc: number; qr: number; aero: number }> {
   const now = Date.now();
 
   // Return cached if fresh
@@ -24,7 +24,7 @@ async function fetchAllPrices(): Promise<{ eth: number; btc: number; qr: number 
     return prices;
   } catch (error) {
     console.error("Failed to fetch prices:", error);
-    return cachedPrices || { eth: 0, btc: 0, qr: 0 };
+    return cachedPrices || { eth: 0, btc: 0, qr: 0, aero: 0 };
   }
 }
 
@@ -50,4 +50,12 @@ export async function fetchBtcPrice(): Promise<number> {
 export async function fetchQrPrice(): Promise<number> {
   const prices = await fetchAllPrices();
   return prices.qr;
+}
+
+/**
+ * Fetch current AERO (Aerodrome Finance) price in USD
+ */
+export async function fetchAeroPrice(): Promise<number> {
+  const prices = await fetchAllPrices();
+  return prices.aero;
 }
