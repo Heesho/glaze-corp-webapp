@@ -7,7 +7,7 @@ import { zeroAddress } from "viem";
 
 import { useGovernData, useVoting, StakePanel, VotePanel, GlobalStatsPanel, UserStatsCard } from "@/features/govern";
 import { MULTICALL_ABI, MULTICALL_ADDRESS, TOKEN_ADDRESSES } from "@/lib/blockchain/contracts";
-import { fetchEthPrice, fetchBtcPrice, fetchQrPrice, fetchAeroPrice } from "@/lib/api/price";
+import { fetchEthPrice, fetchBtcPrice, fetchQrPrice, fetchAeroPrice, fetchClankerPrice } from "@/lib/api/price";
 import { fetchRevenueEstimate, type RevenueEstimate } from "@/lib/api/graph";
 import { getLpTokenPriceUsd } from "@/lib/api/uniswapV2";
 import { POLLING_INTERVAL_MS } from "@/config/constants";
@@ -20,6 +20,7 @@ export default function GovernPage() {
   const [btcPrice, setBtcPrice] = useState(0);
   const [qrPrice, setQrPrice] = useState(0);
   const [aeroPrice, setAeroPrice] = useState(0);
+  const [clankerPrice, setClankerPrice] = useState(0);
   const [lpPriceUsd, setLpPriceUsd] = useState(0);
   // Initialize with fallback values so UI renders immediately
   const [revenueEstimate, setRevenueEstimate] = useState<RevenueEstimate>({
@@ -50,14 +51,15 @@ export default function GovernPage() {
     query: { refetchInterval: POLLING_INTERVAL_MS },
   });
 
-  // Fetch ETH price, BTC price, QR price, AERO price, LP price, and revenue estimate
+  // Fetch ETH price, BTC price, QR price, AERO price, CLANKER price, LP price, and revenue estimate
   useEffect(() => {
     const fetchPrices = async () => {
-      const [ethPriceValue, btcPriceValue, qrPriceValue, aeroPriceValue, revenueData] = await Promise.all([
+      const [ethPriceValue, btcPriceValue, qrPriceValue, aeroPriceValue, clankerPriceValue, revenueData] = await Promise.all([
         fetchEthPrice(),
         fetchBtcPrice(),
         fetchQrPrice(),
         fetchAeroPrice(),
+        fetchClankerPrice(),
         fetchRevenueEstimate(),
       ]);
 
@@ -75,6 +77,10 @@ export default function GovernPage() {
 
       if (aeroPriceValue > 0) {
         setAeroPrice(aeroPriceValue);
+      }
+
+      if (clankerPriceValue > 0) {
+        setClankerPrice(clankerPriceValue);
       }
 
       if (ethPriceValue > 0) {
@@ -176,6 +182,7 @@ export default function GovernPage() {
               btcPrice={btcPrice}
               qrPrice={qrPrice}
               aeroPrice={aeroPrice}
+              clankerPrice={clankerPrice}
               donutPriceInEth={donutPriceInEth}
               lpPriceUsd={lpPriceUsd}
               isLoading={isBribesLoading}

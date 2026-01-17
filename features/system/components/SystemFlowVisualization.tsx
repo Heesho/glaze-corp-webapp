@@ -11,6 +11,7 @@ interface PriceData {
   btcPrice: number;
   qrPriceUsd: number;
   aeroPriceUsd: number;
+  clankerPriceUsd: number;
   donutPriceUsd: number;
   lpPriceUsd: number;
 }
@@ -30,6 +31,7 @@ const getTokenUsdPrice = (symbol: string, prices: PriceData): number => {
   if (s === "CBBTC") return prices.btcPrice;
   if (s === "QR") return prices.qrPriceUsd;
   if (s === "AERO") return prices.aeroPriceUsd;
+  if (s === "CLANKER") return prices.clankerPriceUsd;
   return 0;
 };
 

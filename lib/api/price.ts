@@ -1,12 +1,12 @@
 // Cached prices from API
-let cachedPrices: { eth: number; btc: number; qr: number; aero: number } | null = null;
+let cachedPrices: { eth: number; btc: number; qr: number; aero: number; clanker: number } | null = null;
 let lastFetchTime = 0;
 const CACHE_DURATION = 60000; // 1 minute client-side cache
 
 /**
  * Fetch all prices from our API route (avoids CORS, reduces calls)
  */
-async function fetchAllPrices(): Promise<{ eth: number; btc: number; qr: number; aero: number }> {
+async function fetchAllPrices(): Promise<{ eth: number; btc: number; qr: number; aero: number; clanker: number }> {
   const now = Date.now();
 
   // Return cached if fresh
@@ -24,7 +24,7 @@ async function fetchAllPrices(): Promise<{ eth: number; btc: number; qr: number;
     return prices;
   } catch (error) {
     console.error("Failed to fetch prices:", error);
-    return cachedPrices || { eth: 0, btc: 0, qr: 0, aero: 0 };
+    return cachedPrices || { eth: 0, btc: 0, qr: 0, aero: 0, clanker: 0 };
   }
 }
 
@@ -58,4 +58,12 @@ export async function fetchQrPrice(): Promise<number> {
 export async function fetchAeroPrice(): Promise<number> {
   const prices = await fetchAllPrices();
   return prices.aero;
+}
+
+/**
+ * Fetch current CLANKER (tokenbot) price in USD
+ */
+export async function fetchClankerPrice(): Promise<number> {
+  const prices = await fetchAllPrices();
+  return prices.clanker;
 }

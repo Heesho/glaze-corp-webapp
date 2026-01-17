@@ -26,6 +26,7 @@ interface VotePanelProps {
   btcPrice: number;
   qrPrice: number;
   aeroPrice: number;
+  clankerPrice: number;
   donutPriceInEth: bigint;
   lpPriceUsd: number;
   isLoading?: boolean;
@@ -69,6 +70,7 @@ const getTokenUsdPrice = (
   btcPrice: number,
   qrPrice: number,
   aeroPrice: number,
+  clankerPrice: number,
   donutPriceUsd: number,
   lpPriceUsd: number
 ): number => {
@@ -78,6 +80,7 @@ const getTokenUsdPrice = (
   if (tokenLower === TOKEN_ADDRESSES.cbbtc.toLowerCase()) return btcPrice;
   if (tokenLower === TOKEN_ADDRESSES.qr.toLowerCase()) return qrPrice;
   if (tokenLower === TOKEN_ADDRESSES.aero.toLowerCase()) return aeroPrice;
+  if (tokenLower === TOKEN_ADDRESSES.clanker.toLowerCase()) return clankerPrice;
   if (tokenLower === TOKEN_ADDRESSES.donut.toLowerCase()) return donutPriceUsd;
   if (tokenLower === TOKEN_ADDRESSES.donutEthLp.toLowerCase()) return lpPriceUsd;
   return 0;
@@ -95,6 +98,7 @@ export function VotePanel({
   btcPrice,
   qrPrice,
   aeroPrice,
+  clankerPrice,
   donutPriceInEth,
   lpPriceUsd,
   isLoading,
@@ -174,7 +178,7 @@ export function VotePanel({
                 const annualRewardsPerGDonut = rewardsPerToken * 52n;
                 // Now convert to human-readable using reward token decimals
                 const annualRewardsHuman = Number(formatUnits(annualRewardsPerGDonut, decimals));
-                const tokenPrice = getTokenUsdPrice(token, ethPrice, btcPrice, qrPrice, aeroPrice, donutPriceUsd, lpPriceUsd);
+                const tokenPrice = getTokenUsdPrice(token, ethPrice, btcPrice, qrPrice, aeroPrice, clankerPrice, donutPriceUsd, lpPriceUsd);
                 annualRewardsUsd += annualRewardsHuman * tokenPrice;
               });
               // APR = (annual rewards USD per 1 gDONUT) / (1 gDONUT price in USD) * 100

@@ -12,6 +12,7 @@ const TOKEN_ICONS: Record<string, string> = {
   "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": "https://coin-images.coingecko.com/coins/images/40143/small/cbbtc.webp", // cbBTC
   [TOKEN_ADDRESSES.qr.toLowerCase()]: "https://coin-images.coingecko.com/coins/images/66513/small/_QR_white_circle__transparent_bg_%288%29.png", // QR Coin
   [TOKEN_ADDRESSES.aero.toLowerCase()]: "https://coin-images.coingecko.com/coins/images/31745/small/token.png", // Aerodrome Finance
+  [TOKEN_ADDRESSES.clanker.toLowerCase()]: "https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/295953fa-15ed-4d3c-241d-b6c1758c6200/original", // Clanker (tokenbot)
 };
 
 // LP token mappings (payment token -> [token0, token1])
